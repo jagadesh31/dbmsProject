@@ -154,7 +154,7 @@ export function DomainIntake({
       if (!hasAuthCookie()) {
         openAuthModal(afterLoginUrl(), {
           mode: "login",
-          message: "Sign in with Google to start your Seenly scan for this site.",
+          message: "Sign in with Google to start your Seenq scan for this site.",
           turnstileToken,
         });
         setIsLoading(false);
@@ -179,12 +179,12 @@ export function DomainIntake({
             mode: "limit",
             message:
               result.error ||
-              "This Google account already used its Seenly scan. Open your report, or sign in with a different Google account.",
+              "This Google account already used its Seenq scan. Open your report, or sign in with a different Google account.",
           });
         } else if (result.login_required) {
           openAuthModal(afterLoginUrl(), {
             mode: "login",
-            message: "Sign in with Google to start your Seenly scan for this site.",
+            message: "Sign in with Google to start your Seenq scan for this site.",
             turnstileToken,
           });
         }
@@ -255,8 +255,10 @@ export function DomainIntake({
       </div>
 
       {needsTurnstile ? (
-        <div className="mt-4 flex flex-col items-start gap-2">
-          <div ref={widgetRef} />
+        <div className="mt-4 flex w-full flex-col items-stretch gap-2 sm:items-start">
+          <div className="overflow-x-auto">
+            <div ref={widgetRef} />
+          </div>
           {!TURNSTILE_SITE_KEY ? (
             <p className="text-xs font-medium text-[var(--rust)]">Turnstile site key is missing.</p>
           ) : null}
@@ -271,7 +273,7 @@ export function DomainIntake({
 
       <p className="mt-3 text-left text-xs text-zinc-400">
         <span className="font-semibold text-zinc-500">Google sign-in required.</span>{" "}
-        One Seenly scan per Google account.
+        One Seenq scan per Google account.
       </p>
 
       {error ? (

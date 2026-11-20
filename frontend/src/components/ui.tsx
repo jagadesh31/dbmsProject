@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 /**
- * Seenly dashboard primitives — paper / ink / rust / sage.
+ * Seenq dashboard primitives — paper / ink / rust / sage.
  * Props stay stable so existing call sites keep working.
  */
 

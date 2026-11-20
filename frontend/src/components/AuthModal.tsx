@@ -234,7 +234,7 @@ function AuthModal({
 
         <div className="relative z-10 pr-8 text-center">
           <p className="font-[family-name:var(--font-display)] text-2xl tracking-tight text-[var(--ink)]">
-            Seenly
+            Seenq
           </p>
           <h2 id="auth-modal-title" className="mt-3 text-lg font-semibold text-[var(--ink)]">
             {isLimit ? "Scan already used" : "Sign in to scan"}
@@ -242,7 +242,7 @@ function AuthModal({
           <p className="mt-2 text-sm leading-relaxed text-zinc-500">
             {message ||
               (isLimit
-                ? "This Google account already used its Seenly scan. Open your report, or continue with a different Google account."
+                ? "This Google account already used its Seenq scan. Open your report, or continue with a different Google account."
                 : "Enter your site, then sign in with Google. One scan per Google account.")}
           </p>
         </div>
@@ -295,7 +295,7 @@ function AuthModal({
         ) : null}
 
         <p className="relative z-10 mt-5 text-center text-[11px] leading-relaxed text-zinc-400">
-          By continuing, you agree to Seenly&apos;s Terms of Service and Privacy Policy.
+          By continuing, you agree to Seenq&apos;s Terms of Service and Privacy Policy.
         </p>
       </div>
     </div>

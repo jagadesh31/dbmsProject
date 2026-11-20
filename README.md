@@ -1,4 +1,4 @@
-We are building **Seenly** — an AI-powered SEO + GEO intelligence platform for any brand or website.
+We are building **Seenq** — an AI-powered SEO + GEO intelligence platform for any brand or website.
 
 ## Product Vision
 
@@ -938,4 +938,4 @@ The final product should become a continuous search intelligence system:
 
 The central product promise is:
 
-> **Enter your website once. Seenly continuously understands your site, search landscape, competitors, and AI visibility — and tells you what changed and what to do next.**
+> **Enter your website once. Seenq continuously understands your site, search landscape, competitors, and AI visibility — and tells you what changed and what to do next.**

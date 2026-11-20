@@ -59,7 +59,7 @@ func RequireProjectAccess() gin.HandlerFunc {
 		}
 		if !ownsProject(c, p) {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-				"error":          "Sign in to open this Seenly report",
+				"error":          "Sign in to open this Seenq report",
 				"login_required": true,
 			})
 			return

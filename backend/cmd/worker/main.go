@@ -54,7 +54,7 @@ func parsePayload(job db.Job) (jobPayload, error) {
 }
 
 func main() {
-	fmt.Println("Starting Seenly Background Worker...")
+	fmt.Println("Starting Seenq Background Worker...")
 
 	db.Connect()
 

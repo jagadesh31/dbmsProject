@@ -114,7 +114,7 @@ func PreviewPage(c *gin.Context) {
 		c.String(http.StatusBadRequest, "invalid url")
 		return
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; SeenlyPreview/1.0)")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; SeenqPreview/1.0)")
 	req.Header.Set("Accept", "text/html,application/xhtml+xml")
 
 	resp, err := previewClient.Do(req)

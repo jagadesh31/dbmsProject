@@ -79,7 +79,7 @@ func Allow(key string, limit int, window time.Duration) (bool, error) {
 func AllowCreateBurst(email string) (bool, string) {
 	email = strings.TrimSpace(strings.ToLower(email))
 	if email == "" {
-		return false, "Sign in with Google to start a Seenly scan."
+		return false, "Sign in with Google to start a Seenq scan."
 	}
 	ok, err := Allow(
 		burstCreatePrefix+email,
@@ -136,15 +136,15 @@ func AllowAPIBurst(identity string) (bool, string) {
 	return true, ""
 }
 
-// CanTakeScan reports whether this Google account still has a Seenly scan credit.
+// CanTakeScan reports whether this Google account still has a Seenq scan credit.
 // Redis is the fast path; Postgres backfills the key if Redis was empty.
 func CanTakeScan(email string) (bool, string) {
 	email = strings.TrimSpace(strings.ToLower(email))
 	if email == "" {
-		return false, "Sign in with Google to start a Seenly scan."
+		return false, "Sign in with Google to start a Seenq scan."
 	}
 	max := userMaxScans()
-	msg := "This Google account already used its Seenly scan. Open your existing report, or sign in with a different Google account."
+	msg := "This Google account already used its Seenq scan. Open your existing report, or sign in with a different Google account."
 
 	c := redisx.Client()
 	if c != nil {

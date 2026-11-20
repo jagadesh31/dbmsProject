@@ -71,8 +71,8 @@ func TestRobotsBlocksWithoutRules(t *testing.T) {
 func TestRobotsAgentMatching(t *testing.T) {
 	cases := map[string]bool{
 		"*":                  true,
-		"SeenlyBot":          true,
-		"SeenlyBot/1.0":      true,
+		"SeenqBot":          true,
+		"SeenqBot/1.0":      true,
 		"Googlebot":          false,
 		"":                   false,
 	}

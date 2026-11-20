@@ -43,7 +43,7 @@ func TriggerFullScan(c *gin.Context) {
 			Count(&finished)
 		if finished > 0 {
 			c.JSON(http.StatusTooManyRequests, gin.H{
-				"error":          "Sign in with Google to re-run scans on Seenly.",
+				"error":          "Sign in with Google to re-run scans on Seenq.",
 				"login_required": true,
 			})
 			return

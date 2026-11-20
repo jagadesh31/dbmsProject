@@ -60,7 +60,7 @@ const (
 )
 
 // CreateProject creates a new project and queues its first full scan.
-// Google login is required. Each Google account may start one Seenly scan.
+// Google login is required. Each Google account may start one Seenq scan.
 func CreateProject(c *gin.Context) {
 	var input CreateProjectInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -76,7 +76,7 @@ func CreateProject(c *gin.Context) {
 
 	if userEmail == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
-			"error":          "Sign in with Google to start a Seenly scan.",
+			"error":          "Sign in with Google to start a Seenq scan.",
 			"login_required": true,
 		})
 		return

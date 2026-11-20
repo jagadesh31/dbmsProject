@@ -87,7 +87,7 @@ export async function createProjectAction(
   revalidatePath("/projects");
   if (!created || !projectId) {
     return {
-      error: "This Google account already used its Seenly scan.",
+      error: "This Google account already used its Seenq scan.",
       limit_reached: true,
       login_required: true,
     };

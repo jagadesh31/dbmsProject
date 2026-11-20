@@ -20,7 +20,7 @@ function newGuestId() {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-/** Ensure every browser gets a stable Seenly guest id before login. */
+/** Ensure every browser gets a stable Seenq guest id before login. */
 export function ensureGuestCookie(
   request: NextRequest,
   response: NextResponse,

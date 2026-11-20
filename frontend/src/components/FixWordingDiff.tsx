@@ -29,7 +29,7 @@ export function FixWordingDiff({
 
   if (!shownAfter) return null;
 
-  // "brutal" kept for call-site compat; both variants use the soft Seenly look.
+  // "brutal" kept for call-site compat; both variants use the soft Seenq look.
   void variant;
 
   return (

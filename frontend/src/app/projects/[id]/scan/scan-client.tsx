@@ -55,7 +55,7 @@ export function ScanClient({
   /** Optional north-star positioning — shown as "Aiming at: …" in the scan header. */
   positioning?: string;
   initialSummary: ProjectSummary | null;
-  /** Guests must sign in before opening the full Seenly report. */
+  /** Guests must sign in before opening the full Seenq report. */
   requiresLogin?: boolean;
 }) {
   const searchParams = useSearchParams();

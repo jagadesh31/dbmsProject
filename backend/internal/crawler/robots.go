@@ -7,7 +7,7 @@ import (
 )
 
 // RobotsInfo holds the parts of robots.txt that govern our crawl: the advertised
-// sitemaps plus the allow/disallow rules that apply to SeenlyBot.
+// sitemaps plus the allow/disallow rules that apply to SeenqBot.
 type RobotsInfo struct {
 	Sitemaps   []string `json:"sitemaps"`
 	Disallowed []string `json:"disallowed,omitempty"`
@@ -92,7 +92,7 @@ func robotsAgentApplies(agent string) bool {
 	if agent == "" {
 		return false
 	}
-	return agent == "*" || strings.Contains(agent, "visora")
+	return agent == "*" || strings.Contains(agent, "seenq")
 }
 
 // Blocks reports whether a path may not be crawled, applying the standard

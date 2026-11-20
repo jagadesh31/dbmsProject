@@ -102,7 +102,7 @@ func GuestCanStartScan(guestID string) (bool, string) {
 		used = session.ScanCount
 	}
 	if used >= max {
-		return false, "You've used your free Seenly scan. Sign in with Google to open the full report and run more analyses."
+		return false, "Sign in with Google to start a Seenq scan. One scan per Google account."
 	}
 	return true, ""
 }
@@ -112,7 +112,7 @@ func GuestCanStartScan(guestID string) (bool, string) {
 func UserCanCreateProject(email string) (bool, string) {
 	email = strings.TrimSpace(strings.ToLower(email))
 	if email == "" {
-		return false, "Sign in with Google to start a Seenly scan."
+		return false, "Sign in with Google to start a Seenq scan."
 	}
 	if ok, msg := ratelimit.AllowCreateBurst(email); !ok {
 		return false, msg
@@ -139,7 +139,7 @@ func UserCanStartScan(email string) (bool, string) {
 		Count(&n)
 	if int(n) >= max {
 		_ = ratelimit.MarkScanUsed(email, int(n))
-		return false, "This Google account already used its Seenly scan."
+		return false, "This Google account already used its Seenq scan."
 	}
 	return true, ""
 }

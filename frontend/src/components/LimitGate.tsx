@@ -14,7 +14,7 @@ export function LimitGate({ active }: { active: boolean }) {
       {
         mode: "limit",
         message:
-          "This Google account already used its Seenly scan. Open your report, or sign in with a different Google account.",
+          "This Google account already used its Seenq scan. Open your report, or sign in with a different Google account.",
       },
     );
     if (typeof window !== "undefined") {

@@ -253,7 +253,7 @@ export function ReadyPanel({
               }
               className="inline-flex items-center gap-2 rounded-xl bg-[var(--ink)] px-8 py-3.5 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-[var(--rust)]"
             >
-              Sign in to open your Seenly report →
+              Sign in to open your Seenq report →
             </button>
             <p className="text-xs text-zinc-400">Google login opens the full dashboard.</p>
           </>

@@ -14,7 +14,7 @@ import (
 	"github.com/sashabaranov/go-openai"
 )
 
-// Cheap DeepSeek Flash — used for every Seenly LLM call (brand, intents, GEO cards, fixes).
+// Cheap DeepSeek Flash — used for every Seenq LLM call (brand, intents, GEO cards, fixes).
 const modelDeepSeekFlash = "deepseek-flash"
 
 // GetModel returns the unified cheap DeepSeek model for all pipeline steps.
@@ -181,7 +181,7 @@ func completeOnce(ctx context.Context, model string, messages []openai.ChatCompl
 		Temperature: temperature,
 		MaxTokens:   maxTokens,
 	}
-	// Flash defaults to thinking mode — disable it to keep Seenly cheap + fast.
+	// Flash defaults to thinking mode — disable it to keep Seenq cheap + fast.
 	if deepSeekThinkingDisabled(base) {
 		payload.Thinking = &struct{ Type string `json:"type"` }{Type: "disabled"}
 	}

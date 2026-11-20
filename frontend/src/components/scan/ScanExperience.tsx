@@ -60,7 +60,7 @@ export function ScanExperience({
             href="/"
             className="shrink-0 font-[family-name:var(--font-display)] text-xl tracking-tight text-[var(--ink)]"
           >
-            Seenly
+            Seenq
           </Link>
           <div className="hidden h-5 w-px bg-[var(--line)] sm:block" />
           <div className="min-w-0">
@@ -93,7 +93,7 @@ export function ScanExperience({
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-3 md:flex-row md:gap-0 md:p-4 lg:p-5">
-        <aside className="scan-sidebar relative flex h-auto max-h-[38vh] w-full shrink-0 flex-col overflow-hidden rounded-2xl text-white md:h-full md:max-h-none md:w-[280px] lg:w-[300px]">
+        <aside className="scan-sidebar relative flex h-auto max-h-[32vh] w-full shrink-0 flex-col overflow-hidden rounded-2xl text-white sm:max-h-[38vh] md:h-full md:max-h-none md:w-[280px] lg:w-[300px]">
           <div className="scan-sidebar-glow pointer-events-none absolute inset-0" />
           <div className="relative z-10 flex min-h-0 flex-1 flex-col p-4 md:p-5">
             <div className="mb-4 shrink-0">

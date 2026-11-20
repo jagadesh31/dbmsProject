@@ -20,9 +20,9 @@ const display = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Seenly | Where your brand gets found",
+  title: "Seenq | Where your brand gets found",
   description:
-    "Paste your website. Seenly checks Google and AI answers, finds rivals, and shows what to fix.",
+    "Paste your website. Seenq checks Google and AI answers, finds rivals, and shows what to fix.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

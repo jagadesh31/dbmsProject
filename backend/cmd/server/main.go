@@ -16,7 +16,7 @@ import (
 )
 
 func main() {
-	fmt.Println("Starting Seenly Go Backend API...")
+	fmt.Println("Starting Seenq Go Backend API...")
 
 	db.Connect()
 	if err := redisx.Connect(); err != nil {
@@ -54,7 +54,7 @@ func main() {
 	r.GET("/api/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"status":  "ok",
-			"message": "Seenly Go Backend is running",
+			"message": "Seenq Go Backend is running",
 			"redis":   ratelimit.Status(),
 		})
 	})
