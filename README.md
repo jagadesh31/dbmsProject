@@ -460,17 +460,18 @@ search intent
 location
 ```
 
-Examples:
+Examples :
 
 ```text
-What are the best Indian skincare brands?
+Which Indian skincare brands are considered the best?
 
-What is the best vitamin C serum in India?
+Which vitamin C serum is best available in India?
 
-Which sunscreen is good for oily skin?
+What sunscreen would you recommend for oily skin?
 
-What are affordable Indian skincare brands?
+Which Indian skincare brands offer affordable products?
 ```
+
 
 Run these prompts against supported AI search/answer providers through appropriate APIs or permitted interfaces.
 
