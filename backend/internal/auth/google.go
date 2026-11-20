@@ -18,6 +18,7 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"visora-backend/internal/db"
+	"visora-backend/internal/ratelimit"
 )
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -55,6 +56,17 @@ func GoogleLogin(c *gin.Context) {
 	// Do not bind Turnstile to ClientIP — offices/NAT share one public IP.
 	if err := VerifyTurnstile(c.Query("turnstile"), ""); err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": "human verification failed"})
+		return
+	}
+
+	guestID := strings.TrimSpace(c.GetString("guest_id"))
+	if guestID == "" {
+		if raw, err := c.Cookie(GuestCookieName); err == nil {
+			guestID = strings.TrimSpace(raw)
+		}
+	}
+	if ok, msg := ratelimit.AllowAuthBurst(guestID); !ok {
+		c.JSON(http.StatusTooManyRequests, gin.H{"error": msg})
 		return
 	}
 

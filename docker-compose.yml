@@ -17,6 +17,19 @@ services:
       timeout: 3s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    container_name: visora-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   api-server:
     build:
       context: ./backend
@@ -30,8 +43,11 @@ services:
       - ./backend/.env
     environment:
       - DATABASE_URL=postgres://visora:visora@postgres:5432/visora?sslmode=disable
+      - REDIS_ADDR=redis:6379
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/api/health || exit 1"]
@@ -50,6 +66,7 @@ services:
       - ./backend/.env
     environment:
       - DATABASE_URL=postgres://visora:visora@postgres:5432/visora?sslmode=disable
+      - REDIS_ADDR=redis:6379
       - WORKER_STUCK_MINUTES=25
       - WORKER_MAX_ATTEMPTS=3
       - CRAWL_CONCURRENCY=8
@@ -59,6 +76,8 @@ services:
       - TURNSTILE_SECRET_KEY=${TURNSTILE_SECRET_KEY:-}
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
   frontend:
     build:

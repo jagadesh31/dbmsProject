@@ -175,12 +175,14 @@ function ChatShell({
   prompt,
   reply,
   waiting,
+  onSettled,
 }: {
   model: (typeof MODELS)[number];
   domain: string;
   prompt: string;
   reply?: GeoModelReply;
   waiting: boolean;
+  onSettled?: (modelId: ModelId) => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const responseText = reply?.failed
@@ -189,24 +191,30 @@ function ChatShell({
       ? reply.response.slice(0, 900)
       : "";
 
-  const { shown: typedAsk, done: askDone } = useTypewriter(prompt, Boolean(prompt), 110);
+  const { shown: typedAsk, done: askDone } = useTypewriter(prompt, Boolean(prompt), 90);
   const [answerReady, setAnswerReady] = useState(false);
   useEffect(() => {
     setAnswerReady(false);
     if (!askDone || !responseText) return;
-    const t = window.setTimeout(() => setAnswerReady(true), 80);
+    const t = window.setTimeout(() => setAnswerReady(true), 280);
     return () => window.clearTimeout(t);
   }, [askDone, responseText, prompt]);
 
   const { shown: typedAnswer, done: answerDone } = useTypewriter(
     responseText,
     answerReady,
-    responseText.length > 280 ? 140 : 110,
+    responseText.length > 280 ? 120 : 95,
   );
   const streamingAsk = Boolean(prompt) && !askDone;
   const streamingAnswer = answerReady && Boolean(responseText) && !answerDone;
   const showThinking = askDone && waiting && !responseText;
   const hasAnswer = Boolean(responseText) && answerReady;
+
+  useEffect(() => {
+    if (reply?.failed || (answerDone && Boolean(responseText))) {
+      onSettled?.(model.id);
+    }
+  }, [answerDone, responseText, reply?.failed, model.id, onSettled]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -385,7 +393,8 @@ function statusClass(status: string, id: ModelId) {
   return dark ? "bg-white/10 text-white/55" : "bg-zinc-200/80 text-zinc-500";
 }
 
-const HOLD_AFTER_ANSWERS_MS = 1100;
+const HOLD_AFTER_TYPED_MS = 3200;
+const MAX_WAIT_PER_PROMPT_MS = 55000;
 
 export function AiPanel({
   domain,
@@ -414,29 +423,51 @@ export function AiPanel({
   const allPromptsIn = expected > 0 && allPrompts.length >= expected;
 
   const [promptIdx, setPromptIdx] = useState(0);
+  const [typedDone, setTypedDone] = useState<Partial<Record<ModelId, boolean>>>({});
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
   const completedRef = useRef(false);
 
   const currentPromptText = allPrompts[promptIdx] ?? "";
 
+  useEffect(() => {
+    setTypedDone({});
+  }, [currentPromptText]);
+
+  const markSettled = React.useCallback((modelId: ModelId) => {
+    setTypedDone((prev) => (prev[modelId] ? prev : { ...prev, [modelId]: true }));
+  }, []);
+
   const repliesByModel = useMemo(() => {
     const map = new Map<ModelId, GeoModelReply>();
     for (const model of MODELS) {
       const pick = geoReplies
-        .filter((r) => r.prompt === currentPromptText && model.aliases.some((a) => r.model.includes(a)))
+        .filter((r) => {
+          if (r.prompt !== currentPromptText) return false;
+          const m = r.model.toLowerCase();
+          return model.aliases.some((a) => m === a || m.includes(a));
+        })
         .at(-1);
       if (pick) map.set(model.id, pick);
     }
     return map;
   }, [geoReplies, currentPromptText]);
 
-  const allSettled =
+  const settledModels = MODELS.filter((m) => {
+    const r = repliesByModel.get(m.id);
+    return Boolean(r && (r.response || r.failed));
+  });
+  const typedSettled = settledModels.filter((m) => {
+    const r = repliesByModel.get(m.id);
+    if (!r) return false;
+    if (r.failed) return true;
+    return Boolean(typedDone[m.id]);
+  });
+  // Wait until answers finished typing. Prefer all 4; allow advance at 3 if the last is stuck.
+  const allTyped =
     Boolean(currentPromptText) &&
-    MODELS.every((m) => {
-      const r = repliesByModel.get(m.id);
-      return Boolean(r && (r.response || r.failed));
-    });
+    typedSettled.length >= Math.min(4, Math.max(3, settledModels.length)) &&
+    typedSettled.length >= 3;
 
   const finishOrAdvance = React.useCallback(() => {
     if (promptIdx + 1 < allPrompts.length) {
@@ -450,24 +481,19 @@ export function AiPanel({
     }
   }, [promptIdx, allPrompts.length, allPromptsIn]);
 
-  const enoughAnswers =
-    MODELS.filter((m) => {
-      const r = repliesByModel.get(m.id);
-      return Boolean(r && (r.response || r.failed));
-    }).length >= 2;
-
+  // Safety: never hang forever if a model never replies.
   useEffect(() => {
     if (!currentPromptText) return;
-    const wait = enoughAnswers ? 10000 : 28000;
-    const id = window.setTimeout(finishOrAdvance, wait);
+    const id = window.setTimeout(finishOrAdvance, MAX_WAIT_PER_PROMPT_MS);
     return () => window.clearTimeout(id);
-  }, [currentPromptText, finishOrAdvance, enoughAnswers]);
+  }, [currentPromptText, finishOrAdvance]);
 
+  // Only move on after answers have finished typing, then hold so people can read.
   useEffect(() => {
-    if (!allSettled) return;
-    const id = window.setTimeout(finishOrAdvance, HOLD_AFTER_ANSWERS_MS);
+    if (!allTyped) return;
+    const id = window.setTimeout(finishOrAdvance, HOLD_AFTER_TYPED_MS);
     return () => window.clearTimeout(id);
-  }, [allSettled, finishOrAdvance]);
+  }, [allTyped, finishOrAdvance]);
 
   return (
     <div className="mx-auto flex h-full min-h-0 w-full max-w-6xl flex-col gap-2">
@@ -479,7 +505,9 @@ export function AiPanel({
           <span className="min-w-0 truncate text-zinc-400">{currentPromptText}</span>
         </div>
       ) : (
-        <p className="shrink-0 text-[11px] font-semibold text-zinc-400">Writing buyer questions for ChatGPT, Claude, Gemini and Grok…</p>
+        <p className="shrink-0 text-[11px] font-semibold text-zinc-400">
+          Writing buyer questions for ChatGPT, Claude, Gemini and Grok…
+        </p>
       )}
 
       <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-none gap-2 overflow-y-auto overscroll-contain sm:grid-cols-2 sm:grid-rows-2 sm:overflow-hidden">
@@ -495,6 +523,7 @@ export function AiPanel({
               prompt={currentPromptText}
               reply={reply}
               waiting={waiting}
+              onSettled={markSettled}
             />
           );
         })}

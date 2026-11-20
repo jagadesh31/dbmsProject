@@ -24,17 +24,17 @@ export const JOURNEY_STEPS = [
   },
   {
     id: 4,
-    key: "ai",
-    label: "GEO",
-    title: "Do AI assistants recommend you?",
-    description: "Buyers ask ChatGPT, Claude, Gemini, and Grok before they open Google.",
-  },
-  {
-    id: 5,
     key: "competitors",
     label: "Visibility",
     title: "Who shows up instead of you",
     description: "The other brands buyers see when they look for what you sell.",
+  },
+  {
+    id: 5,
+    key: "ai",
+    label: "GEO",
+    title: "Do AI assistants recommend you?",
+    description: "Buyers ask ChatGPT, Claude, Gemini, and Grok before they open Google.",
   },
   {
     id: 6,
@@ -53,14 +53,14 @@ export type JourneyStepId = (typeof JOURNEY_STEPS)[number]["id"];
  * 2 audit → speed
  * 3 brand → still speed until Google intents start
  * 4–5 intents+SERP → searching
- * 9–10 GEO → geo
  * 6–8 competitors → visibility
+ * 9–10 GEO → geo
  * 11+ / finished → next steps
  */
 export function journeyStepFromStage(stage: number, finished: boolean): JourneyStepId {
   if (finished || stage >= 11) return 6;
-  if (stage >= 9) return 4;
-  if (stage >= 6) return 5;
+  if (stage >= 9) return 5;
+  if (stage >= 6) return 4;
   if (stage >= 4) return 3;
   if (stage >= 2) return 2;
   if (stage >= 1) return 1;

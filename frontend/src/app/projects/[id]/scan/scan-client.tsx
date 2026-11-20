@@ -68,6 +68,7 @@ export function ScanClient({
   const [step, setStep] = useState<JourneyStepId>(fromIntents ? 3 : 1);
   const [healthDone, setHealthDone] = useState(false);
   const [googleDone, setGoogleDone] = useState(false);
+  const [rivalsDone, setRivalsDone] = useState(false);
   const [aiDone, setAiDone] = useState(false);
 
   const scan = useScanStream(projectId, streamReady);
@@ -84,6 +85,7 @@ export function ScanClient({
     setStep(fromIntents ? 3 : 1);
     setHealthDone(false);
     setGoogleDone(false);
+    setRivalsDone(false);
     setAiDone(false);
 
     (async () => {
@@ -129,24 +131,25 @@ export function ScanClient({
     (Array.isArray(scan.values.top) && scan.values.top.length > 0);
   const stoppedEarly =
     !hasResults && !scan.running && !scan.finished && scan.events.length > 0;
-  // Play every chapter in order. Backend stage must not skip AI answers.
+  // Play every chapter in order. Google → rivals → AI each wait for their panel.
   useEffect(() => {
     if (step >= 6) return;
-    // Google and AI chapters only advance when the panel has played every item.
     if (step === 3 && !googleDone) return;
-    if (step === 4 && !aiDone) return;
+    if (step === 4 && !rivalsDone && !rivalsChecked) return;
+    if (step === 5 && !aiDone) return;
     const waitMs =
-      step === 1 ? (healthDone ? 300 : 45000) :
-      step === 2 ? 8000 :
-      step === 3 ? 400 :
-      step === 4 ? 400 :
-      rivalsChecked ? 9000 : 45000;
+      step === 1 ? (healthDone ? 700 : 60000) :
+      step === 2 ? 10000 :
+      step === 3 ? 600 :
+      step === 4 ? (rivalsDone ? 900 : rivalsChecked ? 14000 : 60000) :
+      step === 5 ? 800 :
+      12000;
     const from = step;
     const id = window.setTimeout(() => {
       setStep((current) => (current === from ? ((from + 1) as JourneyStepId) : current));
     }, waitMs);
     return () => window.clearTimeout(id);
-  }, [step, healthDone, googleDone, aiDone, rivalsChecked]);
+  }, [step, healthDone, googleDone, rivalsDone, rivalsChecked, aiDone]);
 
   // Keep the visual journey on its own clock. A finished backend must not
   // skip homepage scroll, mini pages, or the four AI cards.
@@ -172,6 +175,7 @@ export function ScanClient({
       setStep(1);
       setHealthDone(false);
       setGoogleDone(false);
+      setRivalsDone(false);
       setAiDone(false);
       scan.retry();
       setStreamReady(true);
@@ -232,6 +236,14 @@ export function ScanClient({
         />
       ) : null}
       {streamReady && step === 4 ? (
+        <CompetitorsPanel
+          domain={domain}
+          competitors={scan.competitors}
+          values={scan.values}
+          onComplete={() => setRivalsDone(true)}
+        />
+      ) : null}
+      {streamReady && step === 5 ? (
         <AiPanel
           domain={domain}
           geoPrompts={scan.geoPrompts}
@@ -239,9 +251,6 @@ export function ScanClient({
           values={scan.values}
           onComplete={() => setAiDone(true)}
         />
-      ) : null}
-      {streamReady && step === 5 ? (
-        <CompetitorsPanel domain={domain} competitors={scan.competitors} values={scan.values} />
       ) : null}
       {streamReady && step === 6 ? (
         <ReadyPanel
@@ -335,7 +344,7 @@ function buildSubtasks(
     }));
   }
 
-  if (step === 5) {
+  if (step === 4) {
     const discovered = scanNumber(scan.values, "competitors_discovered") ?? scan.competitors.length;
     const crawled = scanNumber(scan.values, "competitors_crawled") ?? 0;
     const checking = (scan.values.domain as string | undefined)?.replace(/^www\./, "") ?? "";
@@ -347,7 +356,6 @@ function buildSubtasks(
       },
     ];
 
-    // Show up to 5 competitors with their crawl status
     const topComps = scan.competitors.slice(0, 8);
     for (const c of topComps) {
       const compDomain = c.domain.replace(/^www\./, "");
@@ -360,7 +368,6 @@ function buildSubtasks(
       });
     }
 
-    // If currently checking a domain not in the top5 list yet, surface it
     if (checking && !topComps.some((c) => c.domain.replace(/^www\./, "") === checking)) {
       items.push({ label: checking, detail: "crawling…", done: false });
     }
@@ -368,7 +375,7 @@ function buildSubtasks(
     return items;
   }
 
-  if (step === 4) {
+  if (step === 5) {
     const prompts: string[] = [];
     for (const p of scan.geoPrompts) {
       const t = p.prompt?.trim();

@@ -1,28 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useAuthModal } from "@/components/AuthModal";
-
-const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
-
-declare global {
-  interface Window {
-    turnstile?: {
-      render: (
-        el: HTMLElement,
-        opts: {
-          sitekey: string;
-          callback: (token: string) => void;
-          "expired-callback"?: () => void;
-          "error-callback"?: () => void;
-          theme?: "light" | "dark" | "auto";
-        },
-      ) => string;
-      reset: (id?: string) => void;
-      remove: (id: string) => void;
-    };
-  }
-}
 
 function afterLoginUrl() {
   return typeof window !== "undefined" ? `${window.location.origin}/start` : "/start";
@@ -40,7 +19,12 @@ function rememberPositioning(positioning: string) {
   }
 }
 
-/** Landing intake: starts a free scan; Google login opens the full report. */
+function hasAuthCookie() {
+  if (typeof document === "undefined") return false;
+  return document.cookie.split(";").some((part) => part.trim().startsWith("seenly_token="));
+}
+
+/** Landing intake: save the site, require Google login, then start the scan. */
 export function DomainIntake({
   cta = "Check my site",
   compact = false,
@@ -53,70 +37,11 @@ export function DomainIntake({
   const [positioning, setPositioning] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [turnstileToken, setTurnstileToken] = useState("");
-  const [scriptReady, setScriptReady] = useState(false);
-  const widgetRef = useRef<HTMLDivElement>(null);
-  const widgetId = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (!TURNSTILE_SITE_KEY) return;
-    if (window.turnstile) {
-      setScriptReady(true);
-      return;
-    }
-    const existing = document.querySelector<HTMLScriptElement>('script[data-seenly-turnstile="1"]');
-    if (existing) {
-      existing.addEventListener("load", () => setScriptReady(true));
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
-    script.async = true;
-    script.defer = true;
-    script.dataset.seenlyTurnstile = "1";
-    script.onload = () => setScriptReady(true);
-    document.head.appendChild(script);
-  }, []);
-
-  useEffect(() => {
-    if (!TURNSTILE_SITE_KEY || !scriptReady || !widgetRef.current || !window.turnstile) return;
-    if (widgetId.current) {
-      window.turnstile.remove(widgetId.current);
-      widgetId.current = null;
-    }
-    setTurnstileToken("");
-    widgetId.current = window.turnstile.render(widgetRef.current, {
-      sitekey: TURNSTILE_SITE_KEY,
-      theme: "light",
-      callback: (next) => setTurnstileToken(next),
-      "expired-callback": () => setTurnstileToken(""),
-      "error-callback": () => setTurnstileToken(""),
-    });
-    return () => {
-      if (widgetId.current && window.turnstile) {
-        window.turnstile.remove(widgetId.current);
-        widgetId.current = null;
-      }
-    };
-  }, [scriptReady]);
-
-  const resetTurnstile = () => {
-    setTurnstileToken("");
-    if (widgetId.current && window.turnstile) {
-      window.turnstile.reset(widgetId.current);
-    }
-  };
 
   const submitWebsite = async (raw: string, pos: string) => {
     setIsLoading(true);
     setError("");
     try {
-      if (TURNSTILE_SITE_KEY && !turnstileToken) {
-        setError("Complete the human check, then try again.");
-        setIsLoading(false);
-        return;
-      }
-
       let website = raw.trim();
       if (website && !/^https?:\/\//i.test(website)) {
         website = `https://${website}`;
@@ -124,24 +49,40 @@ export function DomainIntake({
       rememberWebsite(website);
       rememberPositioning(pos.trim());
 
+      // Not signed in → Google login first, then /start creates the scan.
+      if (!hasAuthCookie()) {
+        openAuthModal(afterLoginUrl(), {
+          mode: "login",
+          message: "Sign in with Google to start your Seenly scan for this site.",
+        });
+        setIsLoading(false);
+        return;
+      }
+
       const formData = new FormData();
       formData.append("website", website);
       if (pos.trim()) {
         formData.append("positioning", pos.trim());
       }
-      if (turnstileToken) {
-        formData.append("turnstile", turnstileToken);
-      }
 
       const { createProjectAction } = await import("@/app/actions");
       const result = await createProjectAction(formData);
 
-      if (result?.login_required || result?.error) {
-        if (result.login_required) {
-          openAuthModal(afterLoginUrl());
+      if (result?.login_required || result?.limit_reached || result?.error) {
+        if (result.limit_reached) {
+          openAuthModal(`${typeof window !== "undefined" ? window.location.origin : ""}/projects`, {
+            mode: "limit",
+            message:
+              result.error ||
+              "This Google account already used its Seenly scan. Open your report, or sign in with a different Google account.",
+          });
+        } else if (result.login_required) {
+          openAuthModal(afterLoginUrl(), {
+            mode: "login",
+            message: "Sign in with Google to start your Seenly scan for this site.",
+          });
         }
-        if (result.error) setError(result.error);
-        resetTurnstile();
+        if (result.error && !result.limit_reached) setError(result.error);
         setIsLoading(false);
         return;
       }
@@ -149,7 +90,6 @@ export function DomainIntake({
       const message = err instanceof Error ? err.message : "Something went wrong.";
       if (message.includes("NEXT_REDIRECT")) throw err;
       setError(message);
-      resetTurnstile();
       setIsLoading(false);
     }
   };
@@ -177,7 +117,7 @@ export function DomainIntake({
         />
         <button
           type="submit"
-          disabled={isLoading || (Boolean(TURNSTILE_SITE_KEY) && !turnstileToken)}
+          disabled={isLoading}
           className="shrink-0 bg-[var(--ink)] px-7 py-4 text-sm font-black uppercase tracking-[0.14em] text-[var(--paper)] transition hover:bg-[var(--rust)] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isLoading ? "Opening…" : cta}
@@ -197,16 +137,10 @@ export function DomainIntake({
           className="w-full border border-[var(--line)] bg-white/60 px-5 py-3 text-sm font-medium text-[var(--ink)] shadow-[0_1px_0_rgba(15,15,14,0.04)] outline-none transition placeholder:text-zinc-400 focus:border-[var(--ink)] focus:bg-white disabled:opacity-60"
         />
         <p className="mt-1.5 text-xs text-zinc-400">
-          <span className="font-semibold text-zinc-500">No signup to scan.</span>{" "}
-          One free analysis. Sign in with Google to open the full report.
+          <span className="font-semibold text-zinc-500">Google sign-in required.</span>{" "}
+          One Seenly scan per Google account.
         </p>
       </div>
-
-      {TURNSTILE_SITE_KEY ? (
-        <div className="mt-3 flex justify-start">
-          <div ref={widgetRef} />
-        </div>
-      ) : null}
 
       {error ? (
         <p className="mt-3 border border-[var(--rust)] bg-[var(--rust-soft)] px-3 py-2 text-sm font-medium text-[var(--ink)]">

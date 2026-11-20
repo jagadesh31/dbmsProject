@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"visora-backend/internal/db"
+	"visora-backend/internal/ratelimit"
 )
 
 const GuestCookieName = "seenly_guest"
@@ -24,13 +25,16 @@ func GuestMaxScans() int {
 	return n
 }
 
-// UserMaxScansPerDay caps full re-scans for a signed-in account (email), not IP.
-func UserMaxScansPerDay() int {
-	n, _ := strconv.Atoi(strings.TrimSpace(os.Getenv("USER_MAX_SCANS_PER_DAY")))
-	if n <= 0 {
-		return 5
+// UserMaxScans is how many full analyses one Google account may start (lifetime).
+// Prefers USER_MAX_SCANS; falls back to USER_MAX_SCANS_PER_DAY for older env files.
+func UserMaxScans() int {
+	for _, key := range []string{"USER_MAX_SCANS", "USER_MAX_SCANS_PER_DAY"} {
+		n, _ := strconv.Atoi(strings.TrimSpace(os.Getenv(key)))
+		if n > 0 {
+			return n
+		}
 	}
-	return n
+	return 1
 }
 
 func newGuestID() string {
@@ -103,24 +107,46 @@ func GuestCanStartScan(guestID string) (bool, string) {
 	return true, ""
 }
 
-// UserCanStartScan caps signed-in re-scans per calendar day by account email.
+// UserCanCreateProject is true when this Google account has not used its scan yet.
+// Redis holds the fast quota; Postgres is the fallback source of truth.
+func UserCanCreateProject(email string) (bool, string) {
+	email = strings.TrimSpace(strings.ToLower(email))
+	if email == "" {
+		return false, "Sign in with Google to start a Seenly scan."
+	}
+	if ok, msg := ratelimit.AllowCreateBurst(email); !ok {
+		return false, msg
+	}
+	return ratelimit.CanTakeScan(email)
+}
+
+// UserCanStartScan blocks extra full re-scans after the account's first finished analysis.
 func UserCanStartScan(email string) (bool, string) {
 	email = strings.TrimSpace(strings.ToLower(email))
 	if email == "" {
 		return false, "Sign in required"
 	}
-	max := UserMaxScansPerDay()
-	since := time.Now().UTC().Truncate(24 * time.Hour)
+	if ok, msg := ratelimit.CanTakeScan(email); !ok {
+		return false, msg
+	}
+	// Also respect finished crawl runs in Postgres (covers Redis miss after restart).
+	max := UserMaxScans()
 	var n int64
 	db.DB.Model(&db.CrawlRun{}).
 		Joins("JOIN projects ON projects.id = crawl_runs.project_id").
-		Where("projects.user_email = ? AND crawl_runs.trigger = ? AND crawl_runs.created_at >= ? AND crawl_runs.competitor_id IS NULL",
-			email, "full_scan", since).
+		Where("projects.user_email = ? AND crawl_runs.trigger = ? AND crawl_runs.status = ? AND crawl_runs.competitor_id IS NULL",
+			email, "full_scan", "done").
 		Count(&n)
 	if int(n) >= max {
-		return false, "Daily scan limit reached for this Seenly account. Try again tomorrow."
+		_ = ratelimit.MarkScanUsed(email, int(n))
+		return false, "This Google account already used its Seenly scan."
 	}
 	return true, ""
+}
+
+// RecordUserScan marks the Google account scan credit as used in Redis.
+func RecordUserScan(email string) {
+	_ = ratelimit.IncrScanUsed(email)
 }
 
 // RecordGuestScan increments the guest cookie's used free-scan counter.

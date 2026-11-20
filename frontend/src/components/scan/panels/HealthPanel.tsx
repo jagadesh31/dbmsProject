@@ -66,12 +66,54 @@ function sentences(text?: string, fallback = "") {
   return clean;
 }
 
+/** Skip Amazon ASINs, UUIDs, ref tokens, and other machine path crumbs. */
+function isJunkSegment(seg: string) {
+  const s = seg.trim();
+  if (!s) return true;
+  if (/^b0[a-z0-9]{8,}$/i.test(s)) return true;
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)) return true;
+  if (/^\d{4,}$/.test(s)) return true;
+  if (/^(dp|gp|product|products|sku|ref|qid|sr|node|b|s|sspa|aw|d)$/i.test(s)) return true;
+  if (/^ref=/i.test(s) || /^[a-z]?_[a-z0-9_]{6,}$/i.test(s)) return true;
+  if (s.length <= 2) return true;
+  return false;
+}
+
+function humanizeSegment(seg: string) {
+  return decodeURIComponent(seg)
+    .replace(/\+/g, " ")
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/** Best human label from a URL path (never prefer an ASIN over a slug). */
 function prettyPath(path: string) {
   if (!path || path === "/") return "Home";
-  const last = path.split("/").filter(Boolean).pop() || path;
-  return last
-    .replace(/[-_]/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  const segments = path
+    .split("/")
+    .map((s) => s.split("?")[0])
+    .filter(Boolean)
+    .filter((s) => !isJunkSegment(s));
+  if (segments.length === 0) return "Page";
+  // Prefer the longest readable slug (product names beat short crumbs).
+  const best = [...segments].sort((a, b) => humanizeSegment(b).length - humanizeSegment(a).length)[0];
+  const label = humanizeSegment(best);
+  return label.length > 48 ? `${label.slice(0, 46)}…` : label;
+}
+
+function pageTitle(page: CrawledPage, path: string) {
+  const raw = (page.title || page.h1 || "").trim();
+  if (raw && !isJunkSegment(raw) && !/^b0[a-z0-9]{8,}$/i.test(raw)) return raw;
+  return prettyPath(path);
+}
+
+function shortChromePath(path: string) {
+  if (!path || path === "/") return "/";
+  const parts = path.split("/").filter(Boolean);
+  if (parts.length <= 2) return path.length > 36 ? `…${path.slice(-34)}` : path;
+  return `/…/${parts[parts.length - 1]}`.slice(0, 36);
 }
 
 function ShimmerBlock({ className = "" }: { className?: string }) {
@@ -138,14 +180,7 @@ function ReconstructedSite({
   const nav = content.slice(0, 5).map((p) => prettyPath(pathLabel(p)));
   const cards = content.filter((p) => p.title || p.h1 || p.description).slice(0, 6);
 
-  if (!home || !(home.title || home.h1 || home.description || home.ogImage)) {
-    return (
-      <div className="h-[140%]">
-        <PageShimmer />
-        <PageShimmer />
-      </div>
-    );
-  }
+  const hasCopy = Boolean(home?.title || home?.h1 || home?.description || home?.ogImage);
 
   return (
     <div className="bg-white text-[#1a1a18]">
@@ -154,7 +189,7 @@ function ReconstructedSite({
           {brand}
         </span>
         <div className="hidden min-w-0 flex-1 items-center justify-end gap-5 text-[11px] font-semibold text-zinc-500 sm:flex">
-          {nav.map((item) => (
+          {(nav.length > 0 ? nav : ["Home", "Products", "About"]).map((item) => (
             <span key={item} className="truncate">
               {item}
             </span>
@@ -162,7 +197,22 @@ function ReconstructedSite({
         </div>
       </nav>
 
-      {home.ogImage ? (
+      {!hasCopy ? (
+        <section className="px-8 pb-10 pt-12">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">Opening site</p>
+          <h1 className="mt-3 max-w-3xl font-[family-name:var(--font-display)] text-4xl leading-[1.1] tracking-tight sm:text-5xl">
+            {brand}
+          </h1>
+          <p className="mt-4 max-w-xl text-sm leading-relaxed text-zinc-500">
+            Reading pages on {host}…
+          </p>
+          <div className="mt-8 grid grid-cols-3 gap-3">
+            <ShimmerBlock className="aspect-[4/3]" />
+            <ShimmerBlock className="aspect-[4/3]" />
+            <ShimmerBlock className="aspect-[4/3]" />
+          </div>
+        </section>
+      ) : home?.ogImage ? (
         <section className="relative mx-6 overflow-hidden rounded-3xl">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={home.ogImage} alt="" className="aspect-[16/8] w-full object-cover" />
@@ -189,19 +239,20 @@ function ReconstructedSite({
 
       {cards.length > 0 ? (
         <section className="grid gap-3 px-8 py-10 sm:grid-cols-3">
-          {cards.map((page) => (
-            <article key={page.url} className="rounded-2xl bg-zinc-50 p-4">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
-                {prettyPath(pathLabel(page))}
-              </p>
-              <p className="mt-2 text-sm font-semibold leading-snug">
-                {page.h1 || page.title || prettyPath(pathLabel(page))}
-              </p>
-              {page.description ? (
-                <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-zinc-500">{page.description}</p>
-              ) : null}
-            </article>
-          ))}
+          {cards.map((page) => {
+            const p = pathLabel(page);
+            return (
+              <article key={page.url} className="rounded-2xl bg-zinc-50 p-4">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
+                  {prettyPath(p)}
+                </p>
+                <p className="mt-2 text-sm font-semibold leading-snug">{pageTitle(page, p)}</p>
+                {page.description ? (
+                  <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-zinc-500">{page.description}</p>
+                ) : null}
+              </article>
+            );
+          })}
         </section>
       ) : (
         <div className="h-16" />
@@ -216,10 +267,22 @@ function ReconstructedSite({
 }
 
 function MiniPageCard({ page, index, host }: { page: CrawledPage; index: number; host: string }) {
-  const title = (page.title || page.h1 || "").trim() || pathLabel(page);
   const path = pathLabel(page);
-  const [imageState, setImageState] = useState<"loading" | "loaded" | "failed">("loading");
-  const showImage = Boolean(page.ogImage) && imageState !== "failed";
+  const title = pageTitle(page, path);
+  const blurb = sentences(page.description, "");
+  const brand = brandName(host, page.title);
+  const hasImage = Boolean(page.ogImage);
+  const [imageState, setImageState] = useState<"loading" | "loaded" | "failed">(
+    hasImage ? "loading" : "failed",
+  );
+  const showImage = hasImage && imageState !== "failed";
+  const accent = accentFor(host);
+  const typeHint =
+    page.pageType && page.pageType !== "other"
+      ? page.pageType.replace(/_/g, " ")
+      : path === "/"
+        ? "home"
+        : "page";
 
   return (
     <article
@@ -232,18 +295,10 @@ function MiniPageCard({ page, index, host }: { page: CrawledPage; index: number;
         <span className="h-1.5 w-1.5 rounded-full bg-[#28c840]" />
         <span className="ml-1 min-w-0 flex-1 truncate rounded-sm bg-white px-1 py-0.5 font-mono text-[7px] text-zinc-400 ring-1 ring-zinc-200">
           {host}
-          {path === "/" ? "" : path}
+          {shortChromePath(path)}
         </span>
       </div>
       <div className="relative aspect-[4/3] overflow-hidden bg-white">
-        {imageState !== "loaded" ? (
-          <div className="absolute inset-0 flex flex-col gap-1.5 p-2.5">
-            <ShimmerBlock className="h-2 w-1/3" />
-            <ShimmerBlock className="h-3 w-4/5" />
-            <ShimmerBlock className="h-2 w-3/5" />
-            <ShimmerBlock className="mt-1 w-full flex-1 rounded-lg" />
-          </div>
-        ) : null}
         {showImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -255,11 +310,51 @@ function MiniPageCard({ page, index, host }: { page: CrawledPage; index: number;
               imageState === "loaded" ? "opacity-100" : "opacity-0"
             }`}
           />
+        ) : (
+          <div className="flex h-full flex-col bg-white">
+            <div
+              className="flex items-center justify-between gap-2 px-2.5 py-1.5"
+              style={{ background: accent.wash, borderBottom: `1px solid ${accent.line}` }}
+            >
+              <span className="truncate text-[9px] font-black tracking-tight" style={{ color: accent.ink }}>
+                {brand}
+              </span>
+              <span className="shrink-0 text-[8px] font-semibold uppercase tracking-wide text-zinc-400">
+                {typeHint}
+              </span>
+            </div>
+            <div className="flex min-h-0 flex-1 flex-col gap-1.5 p-2.5">
+              <p className="line-clamp-2 text-[11px] font-semibold leading-snug" style={{ color: accent.ink }}>
+                {title}
+              </p>
+              {blurb ? (
+                <p className="line-clamp-2 text-[9px] leading-relaxed text-zinc-500">{blurb}</p>
+              ) : (
+                <div className="space-y-1 pt-0.5">
+                  <div className="h-1.5 w-full rounded-full bg-zinc-100" />
+                  <div className="h-1.5 w-5/6 rounded-full bg-zinc-100" />
+                  <div className="h-1.5 w-4/6 rounded-full bg-zinc-100" />
+                </div>
+              )}
+              <div className="mt-auto grid grid-cols-3 gap-1 pt-1">
+                <div className="aspect-[5/4] rounded-md" style={{ background: accent.wash }} />
+                <div className="aspect-[5/4] rounded-md bg-zinc-100" />
+                <div className="aspect-[5/4] rounded-md bg-zinc-50 ring-1 ring-zinc-100" />
+              </div>
+            </div>
+          </div>
+        )}
+        {showImage && imageState === "loading" ? (
+          <div className="absolute inset-0 flex flex-col gap-1.5 bg-white p-2.5">
+            <ShimmerBlock className="h-2 w-1/3" />
+            <ShimmerBlock className="h-3 w-4/5" />
+            <ShimmerBlock className="mt-1 w-full flex-1 rounded-lg" />
+          </div>
         ) : null}
       </div>
-      <div className="px-2.5 py-2">
+      <div className="border-t border-zinc-50 px-2.5 py-2">
         <p className="truncate text-[11px] font-semibold text-[#1a1a18]">{title}</p>
-        <p className="truncate font-mono text-[9px] text-zinc-400">{path}</p>
+        <p className="truncate text-[9px] text-zinc-400">{prettyPath(path)}</p>
       </div>
     </article>
   );
@@ -313,7 +408,11 @@ export function HealthPanel({
   const uniquePages = useMemo(() => {
     const byPath = new Map<string, CrawledPage>();
     for (const p of pages) {
-      if (hostnameOf(p.url) !== host) continue;
+      const pageHost = hostnameOf(p.url);
+      // Keep own-site pages even when crawl reports www vs apex.
+      if (pageHost !== host && !pageHost.endsWith(`.${host}`) && host !== pageHost.replace(/^www\./, "")) {
+        continue;
+      }
       const key = pathLabel(p);
       const prev = byPath.get(key);
       if (!prev || contentScore(p) > contentScore(prev)) byPath.set(key, p);
@@ -329,12 +428,19 @@ export function HealthPanel({
   const homeUrl = pageHref(home, host);
   const others = uniquePages
     .filter((p) => p !== home)
-    .sort((a, b) => Number(LEGAL_PATH.test(pathLabel(a))) - Number(LEGAL_PATH.test(pathLabel(b))));
-  const gridPages = others.length > 0 ? others.slice(0, 16) : uniquePages.slice(0, 12);
-  const homeReady = Boolean(home && (home.title || home.h1 || home.description || home.ogImage));
+    .sort((a, b) => {
+      const legal = Number(LEGAL_PATH.test(pathLabel(a))) - Number(LEGAL_PATH.test(pathLabel(b)));
+      if (legal !== 0) return legal;
+      return contentScore(b) - contentScore(a);
+    });
+  const gridPages = (others.length > 0 ? others : uniquePages)
+    .slice()
+    .sort((a, b) => contentScore(b) - contentScore(a))
+    .slice(0, 16);
+  const homeReady = Boolean(home);
+  const homeHasCopy = Boolean(home && (home.title || home.h1 || home.description || home.ogImage));
 
-  // Loader shows at least LOADER_MIN_MS; reveals as soon as the homepage is
-  // crawled, or at LOADER_MAX_MS with a shimmer so the scan never sits on a spinner.
+  // Loader shows at least LOADER_MIN_MS; reveal as soon as any homepage URL lands.
   const [minElapsed, setMinElapsed] = useState(false);
   const [maxElapsed, setMaxElapsed] = useState(false);
   const [homeGaveUp, setHomeGaveUp] = useState(false);
@@ -351,8 +457,8 @@ export function HealthPanel({
   const homeSettled = homeReady || homeGaveUp;
   useEffect(() => {
     if (revealed) return;
-    if ((minElapsed && homeReady) || maxElapsed) setRevealed(true);
-  }, [revealed, minElapsed, maxElapsed, homeReady]);
+    if ((minElapsed && homeReady) || (minElapsed && homeHasCopy) || maxElapsed) setRevealed(true);
+  }, [revealed, minElapsed, maxElapsed, homeReady, homeHasCopy]);
 
   // Timers depend only on phase changes — streaming pages must not restart them.
   // The homepage stays on its shimmer until real content arrives.
@@ -452,11 +558,15 @@ export function HealthPanel({
               {gridPages.map((page, i) => (
                 <MiniPageCard key={page.url} page={page} index={i} host={host} />
               ))}
-              {gridPages.length < 8
-                ? Array.from({ length: 8 - gridPages.length }).map((_, i) => (
-                    <MiniShimmerCard key={`shimmer-${i}`} index={gridPages.length + i} />
+              {gridPages.length === 0
+                ? Array.from({ length: 6 }).map((_, i) => (
+                    <MiniShimmerCard key={`shimmer-${i}`} index={i} />
                   ))
-                : null}
+                : gridPages.length < 4
+                  ? Array.from({ length: 4 - gridPages.length }).map((_, i) => (
+                      <MiniShimmerCard key={`shimmer-${i}`} index={gridPages.length + i} />
+                    ))
+                  : null}
             </div>
           </div>
         </div>

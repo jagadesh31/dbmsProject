@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -46,7 +45,7 @@ type CreateProjectInput struct {
 	// project and threaded through brand, search-intent, GEO, competitor, and
 	// recommendation AI calls so every step serves that positioning first.
 	Positioning string `json:"positioning"`
-	// Turnstile is required for anonymous free scans when TURNSTILE_SECRET_KEY is set.
+	// Turnstile token (optional; Google login already requires Turnstile).
 	Turnstile string `json:"turnstile"`
 	// MaxPages and SitemapURL come from the advanced options on the onboarding
 	// screen. They are applied to the first crawl of the project.
@@ -61,7 +60,7 @@ const (
 )
 
 // CreateProject creates a new project and queues its first full scan.
-// Logged-out visitors may start one free scan (tracked by seenly_guest cookie).
+// Google login is required. Each Google account may start one Seenly scan.
 func CreateProject(c *gin.Context) {
 	var input CreateProjectInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -75,38 +74,22 @@ func CreateProject(c *gin.Context) {
 	}
 	guestID := actorGuest(c)
 
-	if userEmail != "" {
-		var count int64
-		db.DB.Model(&db.Project{}).Where("user_email = ?", userEmail).Count(&count)
-		if count > 0 {
-			var existing db.Project
-			db.DB.Where("user_email = ?", userEmail).First(&existing)
-			c.JSON(http.StatusOK, existing)
-			return
-		}
-	} else {
-		ok, msg := auth.GuestCanStartScan(guestID)
-		if !ok {
-			c.JSON(http.StatusTooManyRequests, gin.H{
-				"error":          msg,
-				"login_required": true,
-			})
-			return
-		}
-		// Cookie quota + Turnstile (no IP limits — offices share one public IP).
-		if strings.TrimSpace(os.Getenv("TURNSTILE_SECRET_KEY")) != "" {
-			token := strings.TrimSpace(input.Turnstile)
-			if token == "" {
-				token = strings.TrimSpace(c.GetHeader("X-Turnstile-Token"))
-			}
-			if err := auth.VerifyTurnstile(token, ""); err != nil {
-				c.JSON(http.StatusForbidden, gin.H{
-					"error":     "Please complete the human check to start a free Seenly scan.",
-					"turnstile": true,
-				})
-				return
-			}
-		}
+	if userEmail == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error":          "Sign in with Google to start a Seenly scan.",
+			"login_required": true,
+		})
+		return
+	}
+
+	ok, msg := auth.UserCanCreateProject(userEmail)
+	if !ok {
+		c.JSON(http.StatusTooManyRequests, gin.H{
+			"error":          msg,
+			"limit_reached":  true,
+			"login_required": true,
+		})
+		return
 	}
 
 	maxPages := input.MaxPages
@@ -115,10 +98,6 @@ func CreateProject(c *gin.Context) {
 	}
 	if maxPages > maxAllowedPages {
 		maxPages = maxAllowedPages
-	}
-	// Guests get a smaller crawl so free credits stay bounded.
-	if userEmail == "" && maxPages > 30 {
-		maxPages = 30
 	}
 
 	project := db.Project{
@@ -139,9 +118,8 @@ func CreateProject(c *gin.Context) {
 		return
 	}
 
-	if userEmail == "" {
-		auth.RecordGuestScan(guestID)
-	}
+	// Consume Redis scan credit immediately so concurrent creates cannot double-spend.
+	auth.RecordUserScan(userEmail)
 
 	run := db.CrawlRun{
 		ProjectID: project.ID,

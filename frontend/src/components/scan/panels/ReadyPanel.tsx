@@ -255,7 +255,7 @@ export function ReadyPanel({
             >
               Sign in to open your Seenly report →
             </button>
-            <p className="text-xs text-zinc-400">Google login opens the full dashboard and more scans.</p>
+            <p className="text-xs text-zinc-400">Google login opens the full dashboard.</p>
           </>
         ) : (
           <Link

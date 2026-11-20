@@ -11,12 +11,19 @@ import (
 	"visora-backend/internal/api"
 	visoraauth "visora-backend/internal/auth"
 	"visora-backend/internal/db"
+	"visora-backend/internal/ratelimit"
+	"visora-backend/internal/redisx"
 )
 
 func main() {
 	fmt.Println("Starting Seenly Go Backend API...")
 
 	db.Connect()
+	if err := redisx.Connect(); err != nil {
+		log.Printf("redis: %v (scan quotas fall back to Postgres)", err)
+	} else {
+		log.Printf("redis: connected (%s)", ratelimit.Status())
+	}
 
 	r := gin.Default()
 
@@ -45,7 +52,11 @@ func main() {
 	r.Use(visoraauth.AuthMiddleware())
 
 	r.GET("/api/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "ok", "message": "Seenly Go Backend is running"})
+		c.JSON(http.StatusOK, gin.H{
+			"status":  "ok",
+			"message": "Seenly Go Backend is running",
+			"redis":   ratelimit.Status(),
+		})
 	})
 
 	r.GET("/auth/google", visoraauth.GoogleLogin)
@@ -53,8 +64,8 @@ func main() {
 	r.GET("/auth/logout", visoraauth.Logout)
 	r.GET("/auth/me", visoraauth.RequireAuth(), visoraauth.Me)
 
-	// Start a scan without Google login (1 free scan per guest cookie).
-	r.POST("/api/projects", api.RequireIdentity(), api.CreateProject)
+	// Start a scan — Google login required; one scan per Google account.
+	r.POST("/api/projects", visoraauth.RequireAuth(), api.CreateProject)
 
 	// Watch the live scan + teaser summary with guest or auth.
 	live := r.Group("/api", api.RequireIdentity(), api.ResolveProjectID(), api.RequireProjectAccess())

@@ -58,7 +58,7 @@ export async function authHeaders(): Promise<Record<string, string>> {
   return headers;
 }
 
-/** Optional identity — guests may create a free scan without Google login. */
+/** Optional identity — Google login is required to start a scan. */
 export async function getOptionalUser(): Promise<AuthUser | null> {
   return getUser();
 }

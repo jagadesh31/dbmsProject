@@ -32,8 +32,15 @@ declare global {
   }
 }
 
+export type AuthModalMode = "login" | "limit";
+
+export type AuthModalOptions = {
+  mode?: AuthModalMode;
+  message?: string;
+};
+
 type AuthModalContextValue = {
-  openAuthModal: (redirect?: string) => void;
+  openAuthModal: (redirect?: string, options?: AuthModalOptions) => void;
   closeAuthModal: () => void;
 };
 
@@ -50,16 +57,24 @@ export function AuthModalProvider({
   children,
   initiallyOpen = false,
   initialRedirect,
+  initialMode = "login",
+  initialMessage,
 }: {
   children: ReactNode;
   initiallyOpen?: boolean;
   initialRedirect?: string;
+  initialMode?: AuthModalMode;
+  initialMessage?: string;
 }) {
   const [open, setOpen] = useState(initiallyOpen);
   const [redirect, setRedirect] = useState(initialRedirect ?? "");
+  const [mode, setMode] = useState<AuthModalMode>(initialMode);
+  const [message, setMessage] = useState(initialMessage ?? "");
 
-  const openAuthModal = useCallback((nextRedirect?: string) => {
+  const openAuthModal = useCallback((nextRedirect?: string, options?: AuthModalOptions) => {
     setRedirect(nextRedirect ?? "");
+    setMode(options?.mode ?? "login");
+    setMessage(options?.message ?? "");
     setOpen(true);
   }, []);
 
@@ -70,7 +85,13 @@ export function AuthModalProvider({
   return (
     <AuthModalContext.Provider value={{ openAuthModal, closeAuthModal }}>
       {children}
-      <AuthModal open={open} redirect={redirect} onClose={closeAuthModal} />
+      <AuthModal
+        open={open}
+        redirect={redirect}
+        mode={mode}
+        message={message}
+        onClose={closeAuthModal}
+      />
     </AuthModalContext.Provider>
   );
 }
@@ -78,16 +99,21 @@ export function AuthModalProvider({
 function AuthModal({
   open,
   redirect,
+  mode,
+  message,
   onClose,
 }: {
   open: boolean;
   redirect: string;
+  mode: AuthModalMode;
+  message: string;
   onClose: () => void;
 }) {
   const widgetRef = useRef<HTMLDivElement>(null);
   const widgetId = useRef<string | null>(null);
   const [token, setToken] = useState("");
   const [scriptReady, setScriptReady] = useState(false);
+  const isLimit = mode === "limit";
 
   useEffect(() => {
     if (!open) return;
@@ -153,6 +179,9 @@ function AuthModal({
     return `${publicApiOrigin()}/auth/google?${params.toString()}`;
   })();
 
+  const projectsHref =
+    typeof window !== "undefined" ? `${window.location.origin}/projects` : "/projects";
+
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
       <button
@@ -191,12 +220,24 @@ function AuthModal({
             Seenly
           </p>
           <h2 id="auth-modal-title" className="mt-3 text-lg font-semibold text-[var(--ink)]">
-            Open your full report
+            {isLimit ? "Scan already used" : "Sign in to scan"}
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-zinc-500">
-            Sign in with Google to open the dashboard, ready-to-copy fixes, and more scans.
+            {message ||
+              (isLimit
+                ? "This Google account already used its Seenly scan. Open your report, or continue with a different Google account."
+                : "Enter your site, then sign in with Google. One scan per Google account.")}
           </p>
         </div>
+
+        {isLimit ? (
+          <a
+            href={projectsHref}
+            className="relative z-10 mt-6 flex w-full items-center justify-center rounded-xl bg-[var(--ink)] px-4 py-3 text-sm font-semibold text-[var(--paper)] transition hover:bg-[var(--rust)]"
+          >
+            Open my report
+          </a>
+        ) : null}
 
         <a
           href={token ? continueHref : undefined}
@@ -204,7 +245,7 @@ function AuthModal({
             if (!token) e.preventDefault();
           }}
           aria-disabled={!token}
-          className={`relative z-10 mt-6 flex w-full items-center justify-center gap-2.5 rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+          className={`relative z-10 mt-3 flex w-full items-center justify-center gap-2.5 rounded-xl border px-4 py-3 text-sm font-semibold transition ${
             token
               ? "border-[var(--line)] bg-white text-[var(--ink)] hover:border-[var(--ink)]"
               : "cursor-not-allowed border-[var(--line)] bg-white/50 text-zinc-400"
@@ -216,7 +257,7 @@ function AuthModal({
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
           </svg>
-          Continue with Google
+          {isLimit ? "Continue with a different Google account" : "Continue with Google"}
         </a>
 
         <div className="relative z-10 mt-5 flex justify-center">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Badge, Card, EmptyState, SectionHeader } from "@/components/ui";
 import { DomainIntake } from "@/components/DomainIntake";
+import { LimitGate } from "@/components/LimitGate";
 import { LogoutButton } from "@/components/LogoutButton";
 import { formatDate } from "@/lib/data";
 import { listProjects } from "@/lib/server-data";
@@ -11,11 +12,18 @@ export const dynamic = "force-dynamic";
  * One project per account. Empty accounts can enter a site here;
  * everyone else opens the project they already have.
  */
-export default async function ProjectsPage() {
+export default async function ProjectsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ limit?: string }>;
+}) {
   const projects = await listProjects();
+  const params = searchParams ? await searchParams : {};
+  const showLimit = params.limit === "1";
 
   return (
     <div className="b-surface min-h-screen p-6 md:p-10">
+      <LimitGate active={showLimit} />
       <div className="mx-auto max-w-6xl">
         <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -23,7 +31,7 @@ export default async function ProjectsPage() {
             <h1 className="b-display text-4xl">Your workspace</h1>
             <p className="mt-1 text-sm font-medium text-zinc-500">
               {projects.length === 0
-                ? "Add your website to start a free scan."
+                ? "Add your website to start your Seenly scan."
                 : "Your site and what we’re tracking."}
             </p>
           </div>

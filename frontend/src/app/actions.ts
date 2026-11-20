@@ -22,7 +22,9 @@ function projectIdOf(payload: unknown): string | number | undefined {
   return id === undefined || id === null ? undefined : (id as string | number);
 }
 
-export async function createProjectAction(formData: FormData): Promise<{ error?: string; login_required?: boolean } | undefined> {
+export async function createProjectAction(
+  formData: FormData,
+): Promise<{ error?: string; login_required?: boolean; limit_reached?: boolean } | undefined> {
   const website = String(formData.get("website") ?? "").trim();
 
   if (!website) {
@@ -57,14 +59,20 @@ export async function createProjectAction(formData: FormData): Promise<{ error?:
         const errJson = JSON.parse(errText) as {
           error?: string;
           login_required?: boolean;
+          limit_reached?: boolean;
           turnstile?: boolean;
         };
         return {
           error: errJson.error || "Failed to create project",
-          login_required: Boolean(errJson.login_required) || res.status === 429 || res.status === 401,
+          login_required: Boolean(errJson.login_required) || res.status === 401,
+          limit_reached: Boolean(errJson.limit_reached) || res.status === 429,
         };
       } catch {
-        return { error: "Failed to create project", login_required: res.status === 429 || res.status === 401 };
+        return {
+          error: "Failed to create project",
+          login_required: res.status === 401,
+          limit_reached: res.status === 429,
+        };
       }
     }
 
@@ -78,16 +86,11 @@ export async function createProjectAction(formData: FormData): Promise<{ error?:
   revalidatePath("/");
   revalidatePath("/projects");
   if (!created || !projectId) {
-    // Existing project for a logged-in user — open workspace.
-    try {
-      await requireUser();
-      redirect("/projects");
-    } catch {
-      return {
-        error: "You've already used your free Seenly scan. Sign in to open your report.",
-        login_required: true,
-      };
-    }
+    return {
+      error: "This Google account already used its Seenly scan.",
+      limit_reached: true,
+      login_required: true,
+    };
   }
   redirect(`/projects/${projectId}/scan`);
 }
@@ -120,11 +123,13 @@ export async function continueAfterLoginAction(
     console.error(`[ACTION] List projects error:`, e);
   }
 
+  const trimmed = (website ?? "").trim();
+
   if (existingId) {
-    redirect("/projects");
+    // Already used this Google account's scan — send them to workspace (limit modal if they tried a new site).
+    redirect(trimmed ? "/projects?limit=1" : "/projects");
   }
 
-  const trimmed = (website ?? "").trim();
   if (!trimmed) {
     redirect("/projects");
   }
