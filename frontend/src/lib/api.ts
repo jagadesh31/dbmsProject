@@ -28,7 +28,7 @@ export const PUBLIC_API_BASE = "/go-api";
  * Browser-facing API origin (no /api suffix) — used for OAuth and logout.
  *
  * In the browser, derive the API origin from the current host
- * (`seenly.wrenyn.com` → `api.seenly.wrenyn.com`) so one image works across
+ * (`dbms.wrenyn.com` → `api.dbms.wrenyn.com`) so one image works across
  * environments. Falls back to the build-time value for SSR/dev.
  */
 export function publicApiOrigin(): string {

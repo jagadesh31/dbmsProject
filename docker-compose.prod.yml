@@ -86,7 +86,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.seenly.wrenyn.com/api}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.dbms.wrenyn.com/api}
         NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-0x4AAAAAAGJzzjEi5Csw4Y8v}
     container_name: visora-frontend
     restart: always
@@ -96,7 +96,7 @@ services:
       - ./frontend/.env.production
     environment:
       - API_BASE_URL=http://api-server:8080/api
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://api.seenly.wrenyn.com/api}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://api.dbms.wrenyn.com/api}
     depends_on:
       api-server:
         condition: service_healthy
