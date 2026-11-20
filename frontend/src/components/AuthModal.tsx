@@ -200,7 +200,7 @@ function AuthModal({
     typeof window !== "undefined" ? `${window.location.origin}/projects` : "/projects";
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[80] flex items-end justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-center">
       <button
         type="button"
         aria-label="Close login"
@@ -211,7 +211,7 @@ function AuthModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="auth-modal-title"
-        className="relative z-10 w-full max-w-[420px] overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-7 pb-7 pt-6 shadow-[0_28px_80px_rgba(26,26,24,0.22)]"
+        className="relative z-10 max-h-[min(92dvh,720px)] w-full max-w-[420px] overflow-y-auto overscroll-contain rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-6 pb-6 pt-5 shadow-[0_28px_80px_rgba(26,26,24,0.22)] sm:px-7 sm:pb-7 sm:pt-6"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[radial-gradient(circle_at_center,rgba(166,90,58,0.18),transparent_70%)]" />

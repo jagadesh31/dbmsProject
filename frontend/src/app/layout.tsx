@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Fraunces, Geist, Geist_Mono } from "next/font/google";
 import type { ReactNode } from "react";
 import { AuthModalProvider } from "@/components/AuthModal";
+import { DesktopNudge } from "@/components/DesktopNudge";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -32,7 +33,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       className={`${geistSans.variable} ${geistMono.variable} ${display.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col font-sans">
-        <AuthModalProvider>{children}</AuthModalProvider>
+        <AuthModalProvider>
+          {children}
+          <DesktopNudge />
+        </AuthModalProvider>
       </body>
     </html>
   );

@@ -223,12 +223,12 @@ export function DomainIntake({
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           disabled={isLoading}
-          className="min-w-0 flex-1 border border-[var(--line)] bg-white px-5 py-4 text-base font-medium text-[var(--ink)] shadow-[0_1px_0_rgba(15,15,14,0.04)] outline-none transition focus:border-[var(--ink)] disabled:opacity-60"
+          className="min-h-12 min-w-0 flex-1 border border-[var(--line)] bg-white px-4 py-3.5 text-base font-medium text-[var(--ink)] shadow-[0_1px_0_rgba(15,15,14,0.04)] outline-none transition focus:border-[var(--ink)] disabled:opacity-60 sm:px-5 sm:py-4"
         />
         <button
           type="submit"
           disabled={isLoading || (needsTurnstile && !turnstileToken)}
-          className="shrink-0 bg-[var(--ink)] px-7 py-4 text-sm font-black uppercase tracking-[0.14em] text-[var(--paper)] transition hover:bg-[var(--rust)] disabled:cursor-not-allowed disabled:opacity-50"
+          className="min-h-12 shrink-0 bg-[var(--ink)] px-7 py-3.5 text-sm font-black uppercase tracking-[0.14em] text-[var(--paper)] transition hover:bg-[var(--rust)] disabled:cursor-not-allowed disabled:opacity-50 sm:py-4"
         >
           {isLoading ? "Opening…" : cta}
         </button>
@@ -255,8 +255,8 @@ export function DomainIntake({
       </div>
 
       {needsTurnstile ? (
-        <div className="mt-4 flex w-full flex-col items-stretch gap-2 sm:items-start">
-          <div className="overflow-x-auto">
+        <div className="mt-4 flex w-full flex-col items-center gap-2 sm:items-start">
+          <div className="flex w-full justify-center overflow-x-auto sm:justify-start">
             <div ref={widgetRef} />
           </div>
           {!TURNSTILE_SITE_KEY ? (

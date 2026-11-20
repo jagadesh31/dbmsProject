@@ -5,7 +5,7 @@ import { LoginButton } from "@/components/LoginButton";
 /** Landing: brand first, one clear action. */
 export default function LandingPage() {
   return (
-    <div className="analysis-surface flex min-h-screen flex-col overflow-hidden">
+    <div className="analysis-surface relative flex min-h-dvh flex-col overflow-x-hidden">
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -left-24 top-0 h-[42rem] w-[42rem] rounded-full bg-[radial-gradient(circle_at_center,rgba(166,90,58,0.11),transparent_65%)]" />
         <div className="absolute -right-16 bottom-0 h-[36rem] w-[36rem] rounded-full bg-[radial-gradient(circle_at_center,rgba(90,122,106,0.13),transparent_65%)]" />
@@ -19,11 +19,11 @@ export default function LandingPage() {
           </span>
         </Link>
         <div className="flex items-center gap-5">
-          <LoginButton className="text-[10px] font-black uppercase tracking-[0.14em] text-zinc-500 transition hover:text-[var(--ink)] sm:text-xs" />
+          <LoginButton className="min-h-10 text-[10px] font-black uppercase tracking-[0.14em] text-zinc-500 transition hover:text-[var(--ink)] sm:text-xs" />
         </div>
       </nav>
 
-      <main className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 pb-16 pt-6 text-center sm:px-6 sm:pb-20 sm:pt-8">
+      <main className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 pb-[max(4rem,env(safe-area-inset-bottom))] pt-4 text-center sm:px-6 sm:pb-20 sm:pt-8">
         <p className="reveal-item font-[family-name:var(--font-display)] text-4xl tracking-tight text-[var(--ink)] sm:text-5xl md:text-6xl lg:text-7xl">
           Seenq
         </p>

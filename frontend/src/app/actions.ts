@@ -99,6 +99,7 @@ export async function createProjectAction(
 export async function continueAfterLoginAction(
   website?: string,
   positioning?: string,
+  turnstile?: string,
 ): Promise<{ error?: string } | undefined> {
   try {
     await requireUser();
@@ -138,6 +139,9 @@ export async function continueAfterLoginAction(
   formData.append("website", trimmed);
   if (positioning?.trim()) {
     formData.append("positioning", positioning.trim());
+  }
+  if (turnstile?.trim()) {
+    formData.append("turnstile", turnstile.trim());
   }
   return createProjectAction(formData);
 }

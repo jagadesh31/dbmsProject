@@ -11,11 +11,13 @@ export default function StartPage() {
     sessionStorage.removeItem("pending_website");
     const pendingPos = sessionStorage.getItem("pending_positioning") ?? "";
     sessionStorage.removeItem("pending_positioning");
+    const pendingTurnstile = sessionStorage.getItem("pending_turnstile") ?? "";
+    sessionStorage.removeItem("pending_turnstile");
 
     void (async () => {
       try {
         const { continueAfterLoginAction } = await import("@/app/actions");
-        const result = await continueAfterLoginAction(pending, pendingPos);
+        const result = await continueAfterLoginAction(pending, pendingPos, pendingTurnstile);
         if (result?.error) setError(result.error);
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "";

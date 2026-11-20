@@ -54,11 +54,11 @@ export function ScanExperience({
 
   return (
     <div className="scan-app flex h-dvh max-h-dvh flex-col overflow-hidden">
-      <header className="relative z-20 flex shrink-0 items-center justify-between border-b border-[var(--line)]/70 bg-[var(--paper)]/85 px-5 py-3 backdrop-blur-md md:px-8">
-        <div className="flex min-w-0 items-center gap-4">
+      <header className="relative z-20 flex shrink-0 items-center justify-between gap-3 border-b border-[var(--line)]/70 bg-[var(--paper)]/85 px-3 py-2.5 backdrop-blur-md sm:px-5 sm:py-3 md:px-8">
+        <div className="flex min-w-0 items-center gap-2.5 sm:gap-4">
           <Link
             href="/"
-            className="shrink-0 font-[family-name:var(--font-display)] text-xl tracking-tight text-[var(--ink)]"
+            className="shrink-0 font-[family-name:var(--font-display)] text-lg tracking-tight text-[var(--ink)] sm:text-xl"
           >
             Seenq
           </Link>
@@ -68,7 +68,7 @@ export function ScanExperience({
               {domain}
             </div>
             {positioning ? (
-              <div className="mt-0.5 flex items-center gap-1.5 truncate">
+              <div className="mt-0.5 hidden items-center gap-1.5 truncate sm:flex">
                 <span className="shrink-0 text-[9px] font-black uppercase tracking-[0.12em] text-[var(--rust)]">
                   Aiming at
                 </span>
@@ -80,7 +80,7 @@ export function ScanExperience({
           </div>
         </div>
         <span
-          className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wide ${
+          className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide sm:px-3 sm:text-[11px] ${
             finished
               ? "bg-[var(--sage-soft)] text-[var(--sage)]"
               : stopped

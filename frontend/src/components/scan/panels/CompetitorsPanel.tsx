@@ -245,10 +245,11 @@ export function CompetitorsPanel({
         </div>
         <div className="grid grid-cols-3 divide-x divide-zinc-100 border-t border-zinc-100">
           {[
-            { label: "Find domains", done: discovered > 0, detail: discovered > 0 ? "Done" : `Scanning${phase3Dots}` },
-            { label: "Rank rivals", done: list.length >= 2, detail: list.length >= 2 ? "Done" : `Ranking${phase3Dots}` },
+            { label: "Find", full: "Find domains", done: discovered > 0, detail: discovered > 0 ? "Done" : `Scanning${phase3Dots}` },
+            { label: "Rank", full: "Rank rivals", done: list.length >= 2, detail: list.length >= 2 ? "Done" : `Ranking${phase3Dots}` },
             {
-              label: "Scan sites",
+              label: "Scan",
+              full: "Scan sites",
               done: visited.length >= list.length && list.length > 0,
               detail:
                 visited.length >= list.length && list.length > 0
@@ -258,9 +259,10 @@ export function CompetitorsPanel({
                     : "Queued",
             },
           ].map((p) => (
-            <div key={p.label} className={`px-4 py-2.5 text-center ${p.done ? "bg-emerald-50/60" : ""}`}>
+            <div key={p.full} className={`px-2 py-2.5 text-center sm:px-4 ${p.done ? "bg-emerald-50/60" : ""}`}>
               <p className={`text-[10px] font-semibold uppercase tracking-wide ${p.done ? "text-emerald-700" : "text-zinc-400"}`}>
-                {p.done ? "✓" : "→"} {p.label}
+                {p.done ? "✓" : "→"} <span className="sm:hidden">{p.label}</span>
+                <span className="hidden sm:inline">{p.full}</span>
               </p>
               <p className={`mt-0.5 text-[11px] font-medium ${p.done ? "text-emerald-600" : "text-zinc-500"}`}>{p.detail}</p>
             </div>
@@ -268,8 +270,8 @@ export function CompetitorsPanel({
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 gap-4 overflow-hidden">
-        <div className="flex min-h-0 w-[55%] shrink-0 flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden md:flex-row">
+        <div className="flex min-h-0 w-full shrink-0 flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5 md:w-[55%]">
           <div className="shrink-0 border-b border-zinc-100 px-5 py-2.5">
             <p className="text-sm font-bold text-[#1a1a18]">Rivals in search</p>
           </div>

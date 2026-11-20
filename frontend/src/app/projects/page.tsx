@@ -22,13 +22,13 @@ export default async function ProjectsPage({
   const showLimit = params.limit === "1";
 
   return (
-    <div className="b-surface min-h-screen p-6 md:p-10">
+    <div className="b-surface min-h-dvh p-4 sm:p-6 md:p-10">
       <LimitGate active={showLimit} />
       <div className="mx-auto max-w-6xl">
         <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
-          <div>
+          <div className="min-w-0">
             <span className="b-kicker text-zinc-500">Seenq</span>
-            <h1 className="b-display text-4xl">Your workspace</h1>
+            <h1 className="b-display text-3xl sm:text-4xl">Your workspace</h1>
             <p className="mt-1 text-sm font-medium text-zinc-500">
               {projects.length === 0
                 ? "Add your website to start your Seenq scan."
