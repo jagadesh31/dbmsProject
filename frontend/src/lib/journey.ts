@@ -1,47 +1,47 @@
-/** Scan journey — user outcomes, not internal pipeline jargon. */
+/** Scan journey steps shown to the user. */
 
 export const JOURNEY_STEPS = [
   {
     id: 1,
     key: "health",
-    label: "Your site",
+    label: "Crawling",
     title: "Looking at your website",
-    description: "Browsing your pages the way a visitor would — so we know what you actually offer.",
+    description: "Reading your pages like a visitor so we know what you offer.",
   },
   {
     id: 2,
     key: "technical",
-    label: "Site quality",
+    label: "Speed",
     title: "Is your site ready for visitors?",
     description: "Trust, speed, and how you look when someone finds you on Google.",
   },
   {
     id: 3,
     key: "google",
-    label: "Google",
+    label: "Searching",
     title: "Where do you show up on Google?",
-    description: "Searching the way your buyers search — and seeing if you appear.",
+    description: "Running the searches your buyers use and checking if you appear.",
   },
   {
     id: 4,
     key: "ai",
-    label: "AI answers",
-    title: "Do the AIs recommend you?",
-    description: "Your buyers ask ChatGPT, Claude, Gemini and Grok before they open Google.",
+    label: "GEO",
+    title: "Do AI assistants recommend you?",
+    description: "Buyers ask ChatGPT, Claude, Gemini, and Grok before they open Google.",
   },
   {
     id: 5,
     key: "competitors",
-    label: "Who else shows up",
+    label: "Visibility",
     title: "Who shows up instead of you",
     description: "The other brands buyers see when they look for what you sell.",
   },
   {
     id: 6,
     key: "ready",
-    label: "What to fix",
-    title: "Here is what matters",
-    description: "Clear next steps so more of the right people find you.",
+    label: "Next steps",
+    title: "What to do next",
+    description: "A short list of changes so more of the right people find you.",
   },
 ] as const;
 
@@ -49,13 +49,13 @@ export type JourneyStepId = (typeof JOURNEY_STEPS)[number]["id"];
 
 /**
  * Map backend pipeline stages onto the friendly journey.
- * 1 crawl → your site (page screens)
- * 2 audit → site quality (speed / trust metrics)
- * 3 brand → still site quality (dwell) until Google intents start
- * 4–5 intents+SERP → google
- * 9–10 GEO → ai (runs right after Google)
- * 6–8 competitors → who else (runs after GEO)
- * 11+ / finished → what to fix
+ * 1 crawl → crawling
+ * 2 audit → speed
+ * 3 brand → still speed until Google intents start
+ * 4–5 intents+SERP → searching
+ * 9–10 GEO → geo
+ * 6–8 competitors → visibility
+ * 11+ / finished → next steps
  */
 export function journeyStepFromStage(stage: number, finished: boolean): JourneyStepId {
   if (finished || stage >= 11) return 6;
@@ -80,7 +80,6 @@ export function journeyProgressPercent(
 
 export function estimateSecondsRemaining(step: JourneyStepId, finished: boolean): number {
   if (finished) return 0;
-  // Honest-ish ETA: competitors should feel quick after Google.
   const weights = [20, 8, 24, 28, 20, 16];
   return weights.slice(step - 1).reduce((a, b) => a + b, 0);
 }

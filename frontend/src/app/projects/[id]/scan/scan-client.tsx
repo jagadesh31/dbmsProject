@@ -48,12 +48,15 @@ export function ScanClient({
   domain,
   positioning,
   initialSummary,
+  requiresLogin = false,
 }: {
   projectId: string;
   domain: string;
   /** Optional north-star positioning — shown as "Aiming at: …" in the scan header. */
   positioning?: string;
   initialSummary: ProjectSummary | null;
+  /** Guests must sign in before opening the full Seenly report. */
+  requiresLogin?: boolean;
 }) {
   const searchParams = useSearchParams();
   const forceRerun = searchParams.get("rerun") === "1";
@@ -241,7 +244,12 @@ export function ScanClient({
         <CompetitorsPanel domain={domain} competitors={scan.competitors} values={scan.values} />
       ) : null}
       {streamReady && step === 6 ? (
-        <ReadyPanel projectId={projectId} summary={summary} scan={scan} />
+        <ReadyPanel
+          projectId={projectId}
+          summary={summary}
+          scan={scan}
+          requiresLogin={requiresLogin}
+        />
       ) : null}
     </ScanExperience>
   );

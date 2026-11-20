@@ -28,12 +28,12 @@ function SpeedCompare({ ms }: { ms: number | null }) {
 
   return (
     <div className="space-y-3">
-      {bar(EXPECTED, "bg-emerald-500", "Target · under 800ms")}
+      {bar(EXPECTED, "bg-[var(--sage)]", "Target · under 800ms")}
       {bar(INDUSTRY, "bg-zinc-300", "Typical · ~1.5s")}
       {yours != null ? (
         bar(
           yours,
-          yours <= EXPECTED ? "bg-emerald-600" : yours <= INDUSTRY ? "bg-amber-400" : "bg-[#a65a3a]",
+          yours <= EXPECTED ? "bg-[var(--sage)]" : yours <= INDUSTRY ? "bg-amber-400" : "bg-[var(--rust)]",
           "Your site",
           true,
         )
@@ -74,7 +74,7 @@ function Speedometer({
   const tone =
     ms == null ? "wait" : ms <= TARGET_MS ? "good" : ms <= INDUSTRY_MS ? "ok" : "slow";
   const color =
-    tone === "good" ? "#3d7a5a" : tone === "ok" ? "#d4a017" : tone === "slow" ? "#a65a3a" : "#a1a1aa";
+    tone === "good" ? "#5a7a6a" : tone === "ok" ? "#d4a017" : tone === "slow" ? "#a65a3a" : "#a1a1aa";
 
   const [phase, setPhase] = useState<"sweep" | "settle" | "done">("sweep");
   const [needle, setNeedle] = useState(-78);

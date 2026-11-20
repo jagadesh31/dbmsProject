@@ -52,7 +52,8 @@ var jwtSecret = func() []byte {
 
 // GET /auth/google  →  redirect to Google consent screen
 func GoogleLogin(c *gin.Context) {
-	if err := VerifyTurnstile(c.Query("turnstile"), c.ClientIP()); err != nil {
+	// Do not bind Turnstile to ClientIP — offices/NAT share one public IP.
+	if err := VerifyTurnstile(c.Query("turnstile"), ""); err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": "human verification failed"})
 		return
 	}
@@ -151,12 +152,17 @@ func GoogleCallback(c *gin.Context) {
 		return
 	}
 
-	setAuthCookie(c, "visora_token", jwtToken, 60*60*24*30)
+	setAuthCookie(c, "seenly_token", jwtToken, 60*60*24*30)
+
+	// Attach any free guest scans from this browser to the signed-in account.
+	if guestID, err := c.Cookie(GuestCookieName); err == nil && strings.TrimSpace(guestID) != "" {
+		ClaimGuestProjects(userInfo.Email, guestID)
+	}
 
 	c.Redirect(http.StatusTemporaryRedirect, redirectAfter)
 }
 
-// GET /auth/logout — browser must hit this host (the one that set visora_token)
+// GET /auth/logout — browser must hit this host (the one that set seenly_token)
 // so Set-Cookie expire actually reaches the client.
 func Logout(c *gin.Context) {
 	expireAuthCookies(c)
@@ -252,7 +258,7 @@ func expireNamedCookie(c *gin.Context, name string) {
 }
 
 func expireAuthCookies(c *gin.Context) {
-	expireNamedCookie(c, "visora_token")
+	expireNamedCookie(c, "seenly_token")
 	expireNamedCookie(c, "oauth_state")
 }
 
@@ -271,7 +277,7 @@ func issueJWT(email, name string) (string, error) {
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(30 * 24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			Issuer:    "visora",
+			Issuer:    "seenly",
 		},
 	}
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -298,16 +304,22 @@ func ValidateJWT(tokenStr string) (*Claims, error) {
 
 // ─── Gin middleware ───────────────────────────────────────────────────────────
 
-// AuthMiddleware reads visora_token cookie and injects claims into context.
-// On failure it just sets email to "" — individual handlers decide whether to reject.
+// AuthMiddleware reads seenly_token / seenly_guest cookies into context.
+// On failure it just leaves identity empty — handlers decide whether to reject.
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tokenStr, err := c.Cookie("visora_token")
+		tokenStr, err := c.Cookie("seenly_token")
 		if err == nil && tokenStr != "" {
 			if claims, err := ValidateJWT(tokenStr); err == nil {
 				c.Set("auth_claims", claims)
 				c.Set("user_email", claims.Email)
 				c.Request.Header.Set("X-User-Email", claims.Email)
+			}
+		}
+		if guest, err := c.Cookie(GuestCookieName); err == nil {
+			guest = strings.TrimSpace(guest)
+			if guest != "" {
+				c.Set("guest_id", guest)
 			}
 		}
 		c.Next()

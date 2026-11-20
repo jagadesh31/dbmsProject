@@ -20,9 +20,9 @@ const display = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Visora — SEO Intelligence for D2C Brands",
+  title: "Seenly | Where your brand gets found",
   description:
-    "Enter your website once. Visora crawls it, maps search visibility, discovers competitors, and shows you exactly what to fix.",
+    "Paste your website. Seenly checks Google and AI answers, finds rivals, and shows what to fix.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	// userAgent identifies Visora honestly to every host we touch.
-	userAgent = "VisoraBot/1.0 (+https://visora.app/bot)"
+	// userAgent identifies Seenly honestly to every host we touch.
+	userAgent = "SeenlyBot/1.0 (+https://seenly.wrenyn.com/bot)"
 	// requestTimeout bounds a single page fetch.
 	requestTimeout = 20 * time.Second
 	// maxBodySize caps the HTML we are willing to parse (3 MB).

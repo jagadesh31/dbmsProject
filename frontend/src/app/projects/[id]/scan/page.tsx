@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
+import { getUser } from "@/lib/auth";
 import { getProject, getProjectSummary } from "@/lib/server-data";
 import { ScanClient } from "./scan-client";
 
@@ -15,7 +16,7 @@ export default async function ScanPage({ params }: { params: Promise<{ id: strin
   const project = await getProject(id);
   if (!project) notFound();
 
-  const summary = await getProjectSummary(id);
+  const [summary, user] = await Promise.all([getProjectSummary(id), getUser()]);
 
   return (
     <Suspense
@@ -25,7 +26,13 @@ export default async function ScanPage({ params }: { params: Promise<{ id: strin
         </div>
       }
     >
-      <ScanClient projectId={id} domain={project.domain} positioning={project.positioning} initialSummary={summary} />
+      <ScanClient
+        projectId={id}
+        domain={project.domain}
+        positioning={project.positioning}
+        initialSummary={summary}
+        requiresLogin={!user}
+      />
     </Suspense>
   );
 }

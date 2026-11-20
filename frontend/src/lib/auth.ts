@@ -1,4 +1,4 @@
-// Server-only auth helpers — reads the visora_token JWT cookie set by the Go backend.
+// Server-only auth helpers — reads the seenly_token JWT cookie set by the Go backend.
 // Do not import this module from Client Components.
 
 import { cookies } from "next/headers";
@@ -14,7 +14,7 @@ export type AuthUser = {
  */
 export async function getUser(): Promise<AuthUser | null> {
   const cookieStore = await cookies();
-  const token = cookieStore.get("visora_token")?.value;
+  const token = cookieStore.get("seenly_token")?.value;
   if (!token) return null;
 
   try {
@@ -43,13 +43,22 @@ export async function requireUser(): Promise<AuthUser> {
   return user;
 }
 
-/** Headers so the Go API sees the same browser session. */
+/** Headers so the Go API sees the same browser session (auth + guest). */
 export async function authHeaders(): Promise<Record<string, string>> {
   const cookieStore = await cookies();
-  const token = cookieStore.get("visora_token")?.value;
+  const token = cookieStore.get("seenly_token")?.value;
+  const guest = cookieStore.get("seenly_guest")?.value;
   const user = await getUser();
   const headers: Record<string, string> = {};
-  if (token) headers.Cookie = `visora_token=${token}`;
+  const parts: string[] = [];
+  if (token) parts.push(`seenly_token=${token}`);
+  if (guest) parts.push(`seenly_guest=${guest}`);
+  if (parts.length) headers.Cookie = parts.join("; ");
   if (user?.email) headers["X-User-Email"] = user.email;
   return headers;
+}
+
+/** Optional identity — guests may create a free scan without Google login. */
+export async function getOptionalUser(): Promise<AuthUser | null> {
+  return getUser();
 }

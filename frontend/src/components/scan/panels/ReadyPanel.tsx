@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useAuthModal } from "@/components/AuthModal";
 import { ProjectSummary, getFixes, getRecommendations } from "@/lib/data";
 import { pasteReadyAfter } from "@/lib/readable-copy";
 import { ScanSnapshot } from "@/lib/useScanStream";
@@ -71,11 +72,15 @@ export function ReadyPanel({
   projectId,
   summary,
   scan,
+  requiresLogin = false,
 }: {
   projectId: string;
   summary: ProjectSummary | null;
   scan: ScanSnapshot;
+  /** Guests see a teaser; full dashboard needs Google login. */
+  requiresLogin?: boolean;
 }) {
+  const { openAuthModal } = useAuthModal();
   const [pulled, setPulled] = useState<ActionItem[]>([]);
   const [waitedOut, setWaitedOut] = useState(false);
   const [shown, setShown] = useState(false);
@@ -86,6 +91,7 @@ export function ReadyPanel({
   }, []);
 
   useEffect(() => {
+    if (requiresLogin) return;
     let cancelled = false;
     const load = async () => {
       try {
@@ -129,7 +135,7 @@ export function ReadyPanel({
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [projectId, scan.finished]);
+  }, [projectId, scan.finished, requiresLogin]);
 
   useEffect(() => {
     const id = window.setTimeout(() => setWaitedOut(true), 20000);
@@ -233,13 +239,32 @@ export function ReadyPanel({
         ) : null}
       </ol>
 
-      <div className="mt-6 flex shrink-0 justify-center">
-        <Link
-          href={`/projects/${projectId}/fixes`}
-          className="inline-flex items-center gap-2 rounded-xl bg-[#1a1a18] px-8 py-3.5 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-[#a65a3a]"
-        >
-          See every fix and copy it →
-        </Link>
+      <div className="mt-6 flex shrink-0 flex-col items-center gap-2">
+        {requiresLogin ? (
+          <>
+            <button
+              type="button"
+              onClick={() =>
+                openAuthModal(
+                  typeof window !== "undefined"
+                    ? `${window.location.origin}/projects/${projectId}/fixes`
+                    : `/projects/${projectId}/fixes`,
+                )
+              }
+              className="inline-flex items-center gap-2 rounded-xl bg-[var(--ink)] px-8 py-3.5 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-[var(--rust)]"
+            >
+              Sign in to open your Seenly report →
+            </button>
+            <p className="text-xs text-zinc-400">Google login opens the full dashboard and more scans.</p>
+          </>
+        ) : (
+          <Link
+            href={`/projects/${projectId}/fixes`}
+            className="inline-flex items-center gap-2 rounded-xl bg-[var(--ink)] px-8 py-3.5 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-[var(--rust)]"
+          >
+            See every fix and copy it →
+          </Link>
+        )}
       </div>
     </div>
   );

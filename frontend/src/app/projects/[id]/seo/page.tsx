@@ -119,7 +119,7 @@ export default async function SeoPage({ params }: { params: Promise<{ id: string
                   <p className="text-sm text-zinc-700">{group.detail}</p>
 
                   {group.recommendation ? (
-                    <div className="border-4 border-black bg-[var(--brutal-emerald)] p-3 text-sm font-bold">
+                    <div className="rounded-xl bg-[var(--sage-soft)] p-3 text-sm font-medium">
                       <span className="b-kicker mr-2">Fix</span>
                       {group.recommendation}
                     </div>

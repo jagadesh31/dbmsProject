@@ -18,16 +18,29 @@ type Project struct {
 	Brand       string    `gorm:"not null"`
 	Website     string    `gorm:"not null"`
 	Category    string    `gorm:"not null"`
-	Country     string    `gorm:"not null;default:'India'"`
+	Country     string    `gorm:"not null;default:''"`
 	// Positioning is the optional north-star sentence the client supplies on
-	// first scan (e.g. "Evening sacks for Indian wedding guests"). Every AI
+	// first scan (e.g. "Premium skincare for sensitive skin"). Every AI
 	// step must obey it; blank means infer everything from the crawl.
 	Positioning string    `gorm:"not null;default:''"`
 	UserEmail   string    `gorm:"index"`
+	// GuestID ties anonymous free scans to a browser cookie (seenly_guest).
+	GuestID     string    `gorm:"index;size:64;default:''"`
 	Competitors string    `gorm:"type:jsonb;not null;default:'[]'"`
 	ProfileData string    `gorm:"type:jsonb;default:'{}'"`
 	Status      string    `gorm:"not null;default:'active'"`
 	CreatedAt   time.Time `gorm:"not null;default:now()"`
+}
+
+// GuestSession tracks free-scan usage for a browser guest cookie.
+type GuestSession struct {
+	ID         uint       `gorm:"primaryKey"`
+	GuestID    string     `gorm:"uniqueIndex;size:64;not null"`
+	IPHash     string     `gorm:"index;size:64;default:''"`
+	ScanCount  int        `gorm:"not null;default:0"`
+	LastScanAt *time.Time
+	CreatedAt  time.Time  `gorm:"not null;default:now()"`
+	UpdatedAt  time.Time  `gorm:"not null;default:now()"`
 }
 
 type CrawlRun struct {
@@ -451,6 +464,7 @@ type ProjectMetricsHistory struct {
 func AutoMigrate(db *gorm.DB) error {
 	return db.AutoMigrate(
 		&Project{},
+		&GuestSession{},
 		&CrawlRun{},
 		&Page{},
 		&SeoIssue{},

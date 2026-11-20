@@ -93,7 +93,7 @@ export default async function PageDetailPage({
           <Badge tone={issues.length > 0 ? "warning" : "good"}>{issues.length} issues</Badge>
         </div>
         {page.error ? (
-          <p className="mt-3 border-4 border-black bg-[var(--brutal-rose)] p-3 text-sm font-bold">
+          <p className="mt-3 rounded-xl bg-[rgba(196,92,74,0.12)] p-3 text-sm font-medium text-[#9a3f32]">
             Fetch error: {page.error}
           </p>
         ) : null}

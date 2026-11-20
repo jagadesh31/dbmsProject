@@ -78,7 +78,7 @@ export const STAGE_LABELS: Record<number, string> = {
   8: "Comparing coverage",
   9: "Asking AI assistants",
   10: "Reading AI answers",
-  11: "Prioritising what matters",
+  11: "Sorting the top issues",
   12: "Writing what to fix",
   13: "Preparing fixes",
   14: "Ready to apply",
@@ -328,7 +328,7 @@ export function useScanStream(projectId: string, enabled = true) {
     lastEventAt.current = Date.now();
     setSnapshot({ ...EMPTY, running: true });
 
-    // Hit the API host directly (cookie Domain=.fybud.com). Proxying SSE through
+    // Hit the API host directly so the auth cookie is sent. Proxying SSE through
     // Next `/go-api` + nginx buffering caused ERR_CONNECTION_RESET mid-scan.
     let source: EventSource | null = null;
     try {

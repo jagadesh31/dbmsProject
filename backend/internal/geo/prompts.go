@@ -38,9 +38,9 @@ func ClassifyIntent(keyword string) string {
 // so positioning reaches AI answers through those buyer searches.
 func GeneratePrompts(brand, category, country, positioning string, competitors, topics []string) []PromptIdea {
 	cat := strings.ToLower(category)
-	ctry := country
+	ctry := strings.TrimSpace(country)
 	if ctry == "" {
-		ctry = "India"
+		ctry = "the market"
 	}
 
 	// Limit topics to 5

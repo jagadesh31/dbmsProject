@@ -6,7 +6,7 @@ import { LogoutButton } from "@/components/LogoutButton";
 
 const NAV = [
   { name: "Overview", path: "", hint: "Scores & next steps" },
-  { name: "What to fix", path: "/fixes", hint: "Paste-ready changes" },
+  { name: "What to fix", path: "/fixes", hint: "Ready-to-copy changes" },
   { name: "Google", path: "/visibility", hint: "Where you rank" },
   { name: "AI answers", path: "/geo", hint: "Where AIs mention you" },
   { name: "Competitors", path: "/competitors", hint: "Who shows up" },
@@ -32,7 +32,7 @@ export default function Sidebar({
     <aside className="sticky top-0 z-10 flex h-screen w-[15.5rem] shrink-0 flex-col border-r border-zinc-200/80 bg-[#f7f4ef]">
       <div className="border-b border-zinc-200/80 px-4 py-5">
         <h2 className="truncate font-[family-name:var(--font-display)] text-xl leading-tight text-[#1a1a18]">
-          Visora
+          Seenly
         </h2>
         <p
           className="mt-0.5 truncate font-mono text-[11px] text-zinc-500"

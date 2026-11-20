@@ -14,22 +14,18 @@ import (
 )
 
 func main() {
-	fmt.Println("Starting Visora Go Backend API...")
+	fmt.Println("Starting Seenly Go Backend API...")
 
 	db.Connect()
 
 	r := gin.Default()
 
-	// ── CORS ──────────────────────────────────────────────────────────────────
-	// Allow the frontend origin and credentials (cookies)
 	r.Use(func(c *gin.Context) {
 		frontendURL := strings.TrimRight(os.Getenv("FRONTEND_URL"), "/")
 		if frontendURL == "" {
 			frontendURL = "http://localhost:3000"
 		}
 		origin := strings.TrimRight(c.Request.Header.Get("Origin"), "/")
-		// Reflect the browser origin when it matches FRONTEND_URL (required for
-		// credentialed EventSource to api.* from the web host).
 		if origin != "" && origin == frontendURL {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
 		} else {
@@ -37,7 +33,7 @@ func main() {
 		}
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-User-Email")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-User-Email, X-Turnstile-Token, Cookie")
 		c.Writer.Header().Set("Vary", "Origin")
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(http.StatusNoContent)
@@ -46,30 +42,37 @@ func main() {
 		c.Next()
 	})
 
-	// ── JWT middleware (runs on all routes, sets user_email if valid cookie) ──
 	r.Use(visoraauth.AuthMiddleware())
 
-	// ── Health ────────────────────────────────────────────────────────────────
 	r.GET("/api/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "ok", "message": "Visora Go Backend is running"})
+		c.JSON(http.StatusOK, gin.H{"status": "ok", "message": "Seenly Go Backend is running"})
 	})
 
-	// ── Google OAuth routes (no auth required) ────────────────────────────────
 	r.GET("/auth/google", visoraauth.GoogleLogin)
 	r.GET("/auth/google/callback", visoraauth.GoogleCallback)
 	r.GET("/auth/logout", visoraauth.Logout)
 	r.GET("/auth/me", visoraauth.RequireAuth(), visoraauth.Me)
 
-	// ── API routes (all require auth) ─────────────────────────────────────────
-	apiGroup := r.Group("/api", visoraauth.RequireAuth(), api.ResolveProjectID())
+	// Start a scan without Google login (1 free scan per guest cookie).
+	r.POST("/api/projects", api.RequireIdentity(), api.CreateProject)
+
+	// Watch the live scan + teaser summary with guest or auth.
+	live := r.Group("/api", api.RequireIdentity(), api.ResolveProjectID(), api.RequireProjectAccess())
 	{
-		// Projects
+		live.GET("/projects/:id", api.GetProject)
+		live.GET("/projects/:id/live-status", api.GetLiveStatus)
+		live.GET("/projects/:id/preview", api.PreviewPage)
+		live.GET("/projects/:id/scan-stream", api.StreamScanEvents)
+		live.POST("/projects/:id/scan", api.TriggerFullScan)
+		live.GET("/projects/:id/summary", api.GetProjectSummary)
+	}
+
+	// Full report / dashboard — Google login required.
+	apiGroup := r.Group("/api", visoraauth.RequireAuth(), api.ResolveProjectID(), api.RequireProjectAccess())
+	{
 		apiGroup.GET("/projects", api.GetProjects)
-		apiGroup.POST("/projects", api.CreateProject)
-		apiGroup.GET("/projects/:id", api.GetProject)
 		apiGroup.PUT("/projects/:id", api.UpdateProject)
 		apiGroup.PATCH("/projects/:id", api.UpdateProject)
-		apiGroup.GET("/projects/:id/summary", api.GetProjectSummary)
 		apiGroup.GET("/projects/:id/pages", api.GetPages)
 		apiGroup.GET("/projects/:id/pages/:pageId", api.GetPageDetail)
 		apiGroup.GET("/projects/:id/issues", api.GetIssues)
@@ -82,13 +85,7 @@ func main() {
 		apiGroup.GET("/projects/:id/competitors/:compId", api.GetCompetitorDetail)
 		apiGroup.GET("/projects/:id/seo-comparison", api.GetSeoComparison)
 		apiGroup.GET("/projects/:id/keywords", api.GetKeywords)
-		apiGroup.GET("/projects/:id/live-status", api.GetLiveStatus)
-		apiGroup.GET("/projects/:id/preview", api.PreviewPage)
-
-		// Intelligence & Scan
-		apiGroup.POST("/projects/:id/scan", api.TriggerFullScan)
 		apiGroup.POST("/projects/:id/scan/from-intents", api.TriggerIntentRerun)
-		apiGroup.GET("/projects/:id/scan-stream", api.StreamScanEvents)
 		apiGroup.GET("/projects/:id/search-intents", api.GetSearchIntents)
 		apiGroup.GET("/projects/:id/search-intents/:intentId", api.GetSearchIntentDetail)
 		apiGroup.GET("/projects/:id/keyword-gaps", api.GetKeywordGaps)
@@ -98,12 +95,8 @@ func main() {
 		apiGroup.POST("/projects/:id/fixes/:fixId/export", api.ExportFix)
 		apiGroup.GET("/projects/:id/metrics/history", api.GetMetricsHistory)
 		apiGroup.POST("/projects/:id/recrawl", api.TriggerRecrawl)
-
-		// Crawl
 		apiGroup.GET("/projects/:id/crawl", api.GetLatestCrawl)
 		apiGroup.POST("/projects/:id/crawl", api.TriggerCrawl)
-
-		// GEO
 		apiGroup.GET("/projects/:id/geo/prompts", api.GetGeoPrompts)
 		apiGroup.POST("/projects/:id/geo/run", api.TriggerGeoRun)
 		apiGroup.GET("/projects/:id/geo/responses", api.GetGeoResponses)

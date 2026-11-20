@@ -70,11 +70,7 @@ export function AuthModalProvider({
   return (
     <AuthModalContext.Provider value={{ openAuthModal, closeAuthModal }}>
       {children}
-      <AuthModal
-        open={open}
-        redirect={redirect}
-        onClose={closeAuthModal}
-      />
+      <AuthModal open={open} redirect={redirect} onClose={closeAuthModal} />
     </AuthModalContext.Provider>
   );
 }
@@ -99,7 +95,7 @@ function AuthModal({
       setScriptReady(true);
       return;
     }
-    const existing = document.querySelector<HTMLScriptElement>('script[data-visora-turnstile="1"]');
+    const existing = document.querySelector<HTMLScriptElement>('script[data-seenly-turnstile="1"]');
     if (existing) {
       existing.addEventListener("load", () => setScriptReady(true));
       return;
@@ -108,7 +104,7 @@ function AuthModal({
     script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
     script.async = true;
     script.defer = true;
-    script.dataset.visoraTurnstile = "1";
+    script.dataset.seenlyTurnstile = "1";
     script.onload = () => setScriptReady(true);
     document.head.appendChild(script);
   }, [open]);
@@ -162,40 +158,56 @@ function AuthModal({
       <button
         type="button"
         aria-label="Close login"
-        className="absolute inset-0 bg-[#0b1a2b]/55 backdrop-blur-xl"
+        className="absolute inset-0 z-0 bg-[rgba(26,26,24,0.45)] backdrop-blur-md"
         onClick={onClose}
       />
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="auth-modal-title"
-        className="relative w-full max-w-[420px] rounded-2xl bg-white px-7 pb-6 pt-5 shadow-[0_24px_80px_rgba(8,20,40,0.35)]"
+        className="relative z-10 w-full max-w-[420px] overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-7 pb-7 pt-6 shadow-[0_28px_80px_rgba(26,26,24,0.22)]"
+        onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-6 flex items-start justify-between">
-          <h2 id="auth-modal-title" className="w-full text-center text-[17px] font-medium text-[#1b1b1b]">
-            Login to Continue
+        <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[radial-gradient(circle_at_center,rgba(166,90,58,0.18),transparent_70%)]" />
+        <div className="pointer-events-none absolute -bottom-20 -left-10 h-40 w-40 rounded-full bg-[radial-gradient(circle_at_center,rgba(90,122,106,0.16),transparent_70%)]" />
+
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onClose();
+          }}
+          className="absolute right-3 top-3 z-30 flex h-10 w-10 items-center justify-center rounded-full text-zinc-400 transition hover:bg-white hover:text-[var(--ink)]"
+          aria-label="Close"
+        >
+          <svg viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor" aria-hidden>
+            <path d="M5.2 4.3a.75.75 0 0 0-1.06 1.06L8.94 10l-4.8 4.64a.75.75 0 1 0 1.06 1.06L10 11.06l4.64 4.64a.75.75 0 1 0 1.06-1.06L11.06 10l4.64-4.64A.75.75 0 0 0 14.64 4.3L10 8.94 5.2 4.3z" />
+          </svg>
+        </button>
+
+        <div className="relative z-10 pr-8 text-center">
+          <p className="font-[family-name:var(--font-display)] text-2xl tracking-tight text-[var(--ink)]">
+            Seenly
+          </p>
+          <h2 id="auth-modal-title" className="mt-3 text-lg font-semibold text-[var(--ink)]">
+            Open your full report
           </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-[#6b7280] transition hover:bg-zinc-100"
-            aria-label="Close"
-          >
-            <svg viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor" aria-hidden>
-              <path d="M5.2 4.3a.75.75 0 0 0-1.06 1.06L8.94 10l-4.8 4.64a.75.75 0 1 0 1.06 1.06L10 11.06l4.64 4.64a.75.75 0 1 0 1.06-1.06L11.06 10l4.64-4.64A.75.75 0 0 0 14.64 4.3L10 8.94 5.2 4.3z" />
-            </svg>
-          </button>
+          <p className="mt-2 text-sm leading-relaxed text-zinc-500">
+            Sign in with Google to open the dashboard, ready-to-copy fixes, and more scans.
+          </p>
         </div>
+
         <a
           href={token ? continueHref : undefined}
           onClick={(e) => {
             if (!token) e.preventDefault();
           }}
           aria-disabled={!token}
-          className={`flex w-full items-center justify-center gap-2.5 rounded-lg border px-4 py-2.5 text-sm font-medium transition ${
+          className={`relative z-10 mt-6 flex w-full items-center justify-center gap-2.5 rounded-xl border px-4 py-3 text-sm font-semibold transition ${
             token
-              ? "border-zinc-200 bg-white text-[#1b1b1b] hover:bg-zinc-50"
-              : "cursor-not-allowed border-zinc-200 bg-zinc-50 text-zinc-400"
+              ? "border-[var(--line)] bg-white text-[var(--ink)] hover:border-[var(--ink)]"
+              : "cursor-not-allowed border-[var(--line)] bg-white/50 text-zinc-400"
           }`}
         >
           <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" aria-hidden>
@@ -207,19 +219,21 @@ function AuthModal({
           Continue with Google
         </a>
 
-        <div className="mt-5 flex justify-center">
+        <div className="relative z-10 mt-5 flex justify-center">
           {TURNSTILE_SITE_KEY ? (
             <div ref={widgetRef} />
           ) : (
-            <p className="text-center text-[12px] text-rose-500">Turnstile site key is missing.</p>
+            <p className="text-center text-[12px] text-[var(--rust)]">Turnstile site key is missing.</p>
           )}
         </div>
         {TURNSTILE_SITE_KEY && !token ? (
-          <p className="mt-3 text-center text-[12px] text-zinc-400">Complete the check to continue.</p>
+          <p className="relative z-10 mt-3 text-center text-[12px] text-zinc-400">
+            Complete the check to continue.
+          </p>
         ) : null}
 
-        <p className="mt-5 text-center text-[11px] leading-relaxed text-zinc-400">
-          By continuing, you agree to our Terms of Service and Privacy Policy.
+        <p className="relative z-10 mt-5 text-center text-[11px] leading-relaxed text-zinc-400">
+          By continuing, you agree to Seenly&apos;s Terms of Service and Privacy Policy.
         </p>
       </div>
     </div>

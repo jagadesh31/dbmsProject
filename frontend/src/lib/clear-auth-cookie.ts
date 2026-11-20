@@ -1,4 +1,4 @@
-export const AUTH_COOKIE = "visora_token";
+export const AUTH_COOKIE = "seenly_token";
 
 function expireDomains(hostname: string): (string | undefined)[] {
   const hosts = new Set<string | undefined>([undefined]);

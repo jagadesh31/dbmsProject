@@ -33,7 +33,7 @@ export default async function GeoVisibilityPage({ params }: { params: Promise<{ 
     geo.mentionRate != null && geo.mentionRate >= 0.4
       ? "AIs already recommend you for some buyer questions."
       : geo.answersCollected > 0
-        ? "AIs answer these questions — but they name someone else."
+        ? "AIs answer these questions, but they name someone else."
         : "Run an analysis to see how AIs talk about your category.";
 
   return (
@@ -51,7 +51,7 @@ export default async function GeoVisibilityPage({ params }: { params: Promise<{ 
       {prompts.length === 0 ? (
         <EmptyState
           title="No AI answers yet"
-          hint="Run an analysis — we ask ChatGPT, Claude, Gemini and Grok the questions your buyers ask."
+          hint="Run an analysis. We ask ChatGPT, Claude, Gemini, and Grok the questions your buyers ask."
           action={
             <Link href={`/projects/${id}/scan`} className="b-btn b-btn-primary">
               Start scan
@@ -68,7 +68,7 @@ export default async function GeoVisibilityPage({ params }: { params: Promise<{ 
               </span>
               <span className="text-xs font-bold text-zinc-500">
                 {geo.geoScore != null && geo.geoScore < 25
-                  ? "Low — rarely named"
+                  ? "Low: rarely named"
                   : geo.geoScore != null && geo.geoScore < 55
                     ? "Building presence"
                     : "Strong AI presence"}
@@ -151,7 +151,7 @@ export default async function GeoVisibilityPage({ params }: { params: Promise<{ 
                 {topRivals.map((c) => (
                   <span
                     key={c.brand}
-                    className="border-4 border-black bg-white px-3 py-2 text-sm font-black"
+                    className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm font-semibold"
                   >
                     {c.brand}{" "}
                     <span className="b-mono text-zinc-500">×{c.count}</span>
@@ -169,7 +169,7 @@ export default async function GeoVisibilityPage({ params }: { params: Promise<{ 
             {prompts.map((row) => (
               <details
                 key={row.promptId || row.text}
-                className="group border-4 border-black bg-white open:shadow-[4px_4px_0_#000]"
+                className="group rounded-2xl border border-[var(--line)] bg-white open:shadow-sm"
               >
                 <summary className="cursor-pointer list-none px-4 py-3 marker:content-none [&::-webkit-details-marker]:hidden">
                   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -264,7 +264,7 @@ export default async function GeoVisibilityPage({ params }: { params: Promise<{ 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm font-bold text-zinc-600">
             {missing.length > 0
-              ? `${missing.length} questions still skip your brand — turn them into content and fix briefs.`
+              ? `${missing.length} questions still skip your brand. Turn them into content and fix briefs.`
               : "Mentions refresh after each analysis."}
           </p>
           <Link href={`/projects/${id}/fixes`} className="b-btn b-btn-sm">

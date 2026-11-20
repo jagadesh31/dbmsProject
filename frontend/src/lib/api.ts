@@ -27,10 +27,9 @@ export const PUBLIC_API_BASE = "/go-api";
 /**
  * Browser-facing API origin (no /api suffix) — used for OAuth and logout.
  *
- * Multi-tenant: in the browser, derive the API origin from the current host
- * using the deploy domain convention (web `visora[-tenant].fybud.com` →
- * API `api.visora[-tenant].fybud.com`), so a single image serves every tenant.
- * Falls back to the build-time value for SSR/dev.
+ * In the browser, derive the API origin from the current host
+ * (`seenly.wrenyn.com` → `api.seenly.wrenyn.com`) so one image works across
+ * environments. Falls back to the build-time value for SSR/dev.
  */
 export function publicApiOrigin(): string {
   if (typeof window !== "undefined") {
@@ -235,7 +234,7 @@ export function normalizeProject(raw: unknown): ApiProject | null {
     website,
     domain: hostOf(website),
     category: pickString(raw, "category", "Category") ?? "Unknown",
-    country: pickString(raw, "country", "Country") ?? "India",
+    country: pickString(raw, "country", "Country") ?? "",
     status: pickString(raw, "status", "Status") ?? "active",
     createdAt: pickString(raw, "createdAt", "CreatedAt"),
     positioning: pickString(raw, "positioning", "Positioning") ?? "",

@@ -100,7 +100,7 @@ func findContextSentence(text, brand string) string {
 	return ""
 }
 
-// domainStem turns "upfluence.com" / "www.fybud.com" into "upfluence" / "fybud".
+// domainStem turns "upfluence.com" / "www.example.com" into "upfluence" / "example".
 func domainStem(host string) string {
 	host = strings.ToLower(strings.TrimSpace(host))
 	host = strings.TrimPrefix(host, "https://")

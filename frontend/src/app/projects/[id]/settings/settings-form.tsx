@@ -15,7 +15,7 @@ export function SettingsForm({ project }: { project: ApiProject }) {
   const [error, setError] = useState("");
 
   const [positioning, setPositioning] = useState(project.positioning ?? "");
-  const [country, setCountry] = useState(project.country ?? "India");
+  const [country, setCountry] = useState(project.country ?? "");
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +25,7 @@ export function SettingsForm({ project }: { project: ApiProject }) {
     try {
       const result = await updateSettingsAction(project.id, {
         positioning: positioning.trim(),
-        country: country.trim() || "India",
+        country: country.trim(),
       });
       if (result?.ok === false) {
         setError(result.error ?? "Failed to save.");
@@ -47,7 +47,7 @@ export function SettingsForm({ project }: { project: ApiProject }) {
       // Save first so the new positioning is in the DB before re-run.
       const saveResult = await updateSettingsAction(project.id, {
         positioning: positioning.trim(),
-        country: country.trim() || "India",
+        country: country.trim(),
       });
       if (saveResult?.ok === false) {
         setError(saveResult.error ?? "Failed to save settings.");
@@ -90,7 +90,7 @@ export function SettingsForm({ project }: { project: ApiProject }) {
           type="text"
           value={positioning}
           onChange={(e) => { setPositioning(e.target.value); setSaved(false); }}
-          placeholder='e.g. "Evening sacks for Indian wedding guests"'
+          placeholder='e.g. "Premium skincare for sensitive skin"'
           className="b-input w-full placeholder:text-zinc-400"
           disabled={isSaving || isRerunning}
         />
@@ -110,7 +110,7 @@ export function SettingsForm({ project }: { project: ApiProject }) {
           type="text"
           value={country}
           onChange={(e) => { setCountry(e.target.value); setSaved(false); }}
-          placeholder="India"
+          placeholder="United States, UK, Global…"
           className="b-input w-full"
           disabled={isSaving || isRerunning}
         />

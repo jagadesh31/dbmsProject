@@ -48,6 +48,17 @@ async function proxy(req: NextRequest, context: { params: Promise<{ path: string
     const value = upstream.headers.get(key);
     if (value) out.set(key, value);
   }
+  // Forward guest/auth Set-Cookie from the Go API (getSetCookie when available).
+  const anyHeaders = upstream.headers as Headers & { getSetCookie?: () => string[] };
+  const setCookies =
+    typeof anyHeaders.getSetCookie === "function"
+      ? anyHeaders.getSetCookie()
+      : upstream.headers.get("set-cookie")
+        ? [upstream.headers.get("set-cookie") as string]
+        : [];
+  for (const cookie of setCookies) {
+    if (cookie) out.append("set-cookie", cookie);
+  }
   if (isStream || (upstream.headers.get("content-type") || "").includes("text/event-stream")) {
     out.set("Content-Type", "text/event-stream; charset=utf-8");
     out.set("Cache-Control", "no-cache, no-transform");

@@ -29,33 +29,8 @@ export function FixWordingDiff({
 
   if (!shownAfter) return null;
 
-  if (variant === "brutal") {
-    return (
-      <div className="grid gap-2 sm:grid-cols-2">
-        <div className="flex max-h-44 flex-col border border-zinc-300 bg-zinc-50 p-3">
-          <span className="b-kicker shrink-0 text-zinc-500">Now</span>
-          <div className="fix-scroll mt-1 min-h-0 flex-1 pr-1">
-            <p className="whitespace-pre-wrap text-sm text-zinc-600">{shownBefore || "—"}</p>
-          </div>
-        </div>
-        <div className="flex max-h-44 flex-col border-4 border-black bg-[var(--brutal-emerald)] p-3">
-          <div className="flex shrink-0 items-center justify-between gap-2">
-            <span className="b-kicker">Change to</span>
-            <button
-              type="button"
-              onClick={copyAfter}
-              className="border-2 border-black bg-white px-2 py-0.5 text-[10px] font-black uppercase tracking-wide shadow-[2px_2px_0_0_#000] transition hover:translate-x-px hover:translate-y-px hover:shadow-none"
-            >
-              {copied ? "Copied" : "Copy"}
-            </button>
-          </div>
-          <div className="fix-scroll mt-1 min-h-0 flex-1 pr-1">
-            <p className="whitespace-pre-wrap text-sm font-bold">{shownAfter}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // "brutal" kept for call-site compat; both variants use the soft Seenly look.
+  void variant;
 
   return (
     <div className="grid gap-2 sm:grid-cols-2">

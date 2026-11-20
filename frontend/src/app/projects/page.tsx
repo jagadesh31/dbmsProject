@@ -19,11 +19,11 @@ export default async function ProjectsPage() {
       <div className="mx-auto max-w-6xl">
         <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <span className="b-kicker text-zinc-500">Workspace</span>
-            <h1 className="b-display text-4xl">Your project</h1>
-            <p className="mt-1 text-sm font-bold text-zinc-600">
+            <span className="b-kicker text-zinc-500">Seenly</span>
+            <h1 className="b-display text-4xl">Your workspace</h1>
+            <p className="mt-1 text-sm font-medium text-zinc-500">
               {projects.length === 0
-                ? "Add your website to start a scan."
+                ? "Add your website to start a free scan."
                 : "Your site and what we’re tracking."}
             </p>
           </div>
@@ -35,7 +35,7 @@ export default async function ProjectsPage() {
         {projects.length === 0 ? (
           <EmptyState
             title="No project yet"
-            hint="Enter your website — we’ll start the scan right away."
+            hint="Enter your website and we’ll start the scan right away."
             action={
               <div className="w-full max-w-2xl">
                 <DomainIntake compact cta="Start scan" />

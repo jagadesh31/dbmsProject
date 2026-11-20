@@ -60,7 +60,7 @@ export default async function CompetitorsPage({ params }: { params: Promise<{ id
       {competitors.length === 0 ? (
         <EmptyState
           title="No competitors discovered yet"
-          hint="Run an analysis — rivals appear from the searches your buyers make."
+          hint="Run an analysis. Rivals appear from the searches your buyers make."
           action={
             <Link href={`/projects/${id}/scan`} className="b-btn b-btn-primary">
               Start scan
@@ -77,8 +77,8 @@ export default async function CompetitorsPage({ params }: { params: Promise<{ id
               hint={
                 brand && avgRivalPages > 0
                   ? avgRivalPages > brand.pagesCrawled
-                    ? `Rivals avg ${avgRivalPages} pages — they cover more`
-                    : `Rivals avg ${avgRivalPages} pages — you're in range`
+                    ? `Rivals avg ${avgRivalPages} pages. They cover more.`
+                    : `Rivals avg ${avgRivalPages} pages. You're in range.`
                   : "Pages we opened on your site"
               }
               tone={
@@ -207,7 +207,7 @@ function RivalCard({
       className="b-card group flex flex-col gap-4 p-4 transition hover:-translate-y-0.5 hover:bg-zinc-50"
     >
       <div className="flex min-w-0 items-start gap-3">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center border-4 border-black bg-black text-sm font-black text-white">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--ink)] text-sm font-semibold text-white">
           {rank}
         </span>
         <div className="min-w-0">
@@ -258,7 +258,7 @@ function RivalCard({
 
 function Metric({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
-    <div className="border-4 border-black bg-zinc-50 px-2 py-2 text-center">
+    <div className="rounded-xl border border-[var(--line)] bg-white/80 px-2 py-2 text-center">
       <p className="b-kicker text-[9px] text-zinc-500">{label}</p>
       <p className="mt-0.5 text-lg font-black tabular-nums text-[#1a1a18]">{value}</p>
       <p className="text-[10px] font-bold text-zinc-400">{sub}</p>

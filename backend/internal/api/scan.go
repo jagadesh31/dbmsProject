@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"visora-backend/internal/auth"
 	"visora-backend/internal/db"
 	"visora-backend/internal/events"
 )
@@ -21,6 +23,38 @@ func TriggerFullScan(c *gin.Context) {
 	if err := db.DB.First(&project, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
 		return
+	}
+
+	email := strings.TrimSpace(actorEmail(c))
+	if email == "" {
+		var active int64
+		db.DB.Raw(`
+			SELECT COUNT(*) FROM jobs
+			WHERE status IN ('queued', 'running')
+			  AND (payload->>'project_id')::int = ?
+		`, project.ID).Scan(&active)
+		if active > 0 {
+			c.JSON(http.StatusOK, gin.H{"message": "Scan already running", "started_at": time.Now().UTC()})
+			return
+		}
+		var finished int64
+		db.DB.Model(&db.CrawlRun{}).
+			Where("project_id = ? AND status = 'done' AND competitor_id IS NULL", project.ID).
+			Count(&finished)
+		if finished > 0 {
+			c.JSON(http.StatusTooManyRequests, gin.H{
+				"error":          "Sign in with Google to re-run scans on Seenly.",
+				"login_required": true,
+			})
+			return
+		}
+		// First attach after create — queue once without burning another guest credit.
+	} else {
+		ok, msg := auth.UserCanStartScan(email)
+		if !ok {
+			c.JSON(http.StatusTooManyRequests, gin.H{"error": msg})
+			return
+		}
 	}
 
 	cancelInFlightJobs(project.ID)

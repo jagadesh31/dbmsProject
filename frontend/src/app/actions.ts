@@ -22,13 +22,7 @@ function projectIdOf(payload: unknown): string | number | undefined {
   return id === undefined || id === null ? undefined : (id as string | number);
 }
 
-export async function createProjectAction(formData: FormData): Promise<{ error?: string } | undefined> {
-  try {
-    await requireUser();
-  } catch {
-    return { error: "Authentication required." };
-  }
-
+export async function createProjectAction(formData: FormData): Promise<{ error?: string; login_required?: boolean } | undefined> {
   const website = String(formData.get("website") ?? "").trim();
 
   if (!website) {
@@ -39,6 +33,7 @@ export async function createProjectAction(formData: FormData): Promise<{ error?:
   const maxPages = Number.parseInt(maxPagesRaw, 10);
   const sitemapUrl = String(formData.get("sitemap_url") ?? "").trim();
   const positioning = String(formData.get("positioning") ?? "").trim();
+  const turnstile = String(formData.get("turnstile") ?? "").trim();
 
   let projectId: string | number | undefined;
   let created = false;
@@ -52,16 +47,24 @@ export async function createProjectAction(formData: FormData): Promise<{ error?:
         ...(Number.isFinite(maxPages) && maxPages > 0 ? { max_pages: maxPages } : {}),
         ...(sitemapUrl ? { sitemap_url: sitemapUrl } : {}),
         ...(positioning ? { positioning } : {}),
+        ...(turnstile ? { turnstile } : {}),
       }),
     });
 
     if (!res.ok) {
       const errText = await res.text();
       try {
-        const errJson = JSON.parse(errText);
-        return { error: errJson.error || "Failed to create project" };
+        const errJson = JSON.parse(errText) as {
+          error?: string;
+          login_required?: boolean;
+          turnstile?: boolean;
+        };
+        return {
+          error: errJson.error || "Failed to create project",
+          login_required: Boolean(errJson.login_required) || res.status === 429 || res.status === 401,
+        };
       } catch {
-        return { error: "Failed to create project" };
+        return { error: "Failed to create project", login_required: res.status === 429 || res.status === 401 };
       }
     }
 
@@ -75,7 +78,16 @@ export async function createProjectAction(formData: FormData): Promise<{ error?:
   revalidatePath("/");
   revalidatePath("/projects");
   if (!created || !projectId) {
-    redirect("/projects");
+    // Existing project for a logged-in user — open workspace.
+    try {
+      await requireUser();
+      redirect("/projects");
+    } catch {
+      return {
+        error: "You've already used your free Seenly scan. Sign in to open your report.",
+        login_required: true,
+      };
+    }
   }
   redirect(`/projects/${projectId}/scan`);
 }

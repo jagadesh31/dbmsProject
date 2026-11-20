@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"net/url"
+	"os"
+	"strings"
 )
 
 type SerpEntry struct {
@@ -19,15 +20,20 @@ type SerpEntry struct {
 
 type serperResponse struct {
 	Organic []struct {
-		Title   string `json:"title"`
-		Link    string `json:"link"`
-		Snippet string `json:"snippet"`
-		Position int   `json:"position"`
+		Title    string `json:"title"`
+		Link     string `json:"link"`
+		Snippet  string `json:"snippet"`
+		Position int    `json:"position"`
 	} `json:"organic"`
 }
 
-// CheckQuery calls Serper.dev Google search API for Indian SERPs.
+// CheckQuery calls Serper.dev Google search for the given market (gl).
 func CheckQuery(query string) ([]SerpEntry, error) {
+	return CheckQueryInMarket(query, "")
+}
+
+// CheckQueryInMarket runs a Serper search with a market country code / name.
+func CheckQueryInMarket(query, market string) ([]SerpEntry, error) {
 	apiKey := os.Getenv("SERP_API_KEY")
 	if apiKey == "" {
 		return nil, fmt.Errorf("SERP_API_KEY is missing")
@@ -35,7 +41,7 @@ func CheckQuery(query string) ([]SerpEntry, error) {
 
 	reqBody, _ := json.Marshal(map[string]interface{}{
 		"q":   query,
-		"gl":  "in",
+		"gl":  marketToGl(market),
 		"hl":  "en",
 		"num": 20,
 	})
@@ -70,7 +76,7 @@ func CheckQuery(query string) ([]SerpEntry, error) {
 		if u != nil {
 			domain = u.Hostname()
 		}
-		
+
 		entries = append(entries, SerpEntry{
 			Position: item.Position,
 			Title:    item.Title,
@@ -79,6 +85,36 @@ func CheckQuery(query string) ([]SerpEntry, error) {
 			Snippet:  item.Snippet,
 		})
 	}
-
 	return entries, nil
+}
+
+func marketToGl(market string) string {
+	m := strings.ToLower(strings.TrimSpace(market))
+	switch m {
+	case "", "global", "worldwide", "world", "the market":
+		return "us"
+	case "india", "in":
+		return "in"
+	case "united kingdom", "uk", "gb", "britain", "england":
+		return "uk"
+	case "united states", "usa", "us", "america":
+		return "us"
+	case "canada", "ca":
+		return "ca"
+	case "australia", "au":
+		return "au"
+	case "germany", "de":
+		return "de"
+	case "france", "fr":
+		return "fr"
+	case "singapore", "sg":
+		return "sg"
+	case "uae", "united arab emirates", "ae":
+		return "ae"
+	default:
+		if len(m) == 2 {
+			return m
+		}
+		return "us"
+	}
 }

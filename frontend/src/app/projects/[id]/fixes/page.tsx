@@ -59,7 +59,7 @@ function severityTone(severity: string): "critical" | "warning" | "notice" | "ne
   return "neutral";
 }
 
-/** Single workspace: paste-ready fixes + open recommendations. */
+/** Single workspace: ready-to-copy fixes + open recommendations. */
 export default async function FixesPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const [fixes, recommendations] = await Promise.all([getFixes(id), getRecommendations(id)]);
@@ -93,7 +93,7 @@ export default async function FixesPage({ params }: { params: Promise<{ id: stri
         <div>
           <h1 className="b-display text-3xl">What to fix</h1>
           <p className="mt-1 text-sm font-bold text-zinc-600">
-            {pendingFixes.length} paste-ready
+            {pendingFixes.length} ready to copy
             {openRecs.length > 0 ? ` · ${openRecs.length} open` : ""}
           </p>
         </div>
@@ -103,11 +103,11 @@ export default async function FixesPage({ params }: { params: Promise<{ id: stri
       </header>
 
       <section className="flex flex-col gap-4">
-        <h2 className="b-display text-xl">Paste onto your site</h2>
+        <h2 className="b-display text-xl">Copy onto your site</h2>
 
         {pendingFixes.length === 0 ? (
           <EmptyState
-            title="No paste-ready fixes yet"
+            title="No ready-to-copy fixes yet"
             hint="Re-run analysis and we’ll write the exact copy for each page."
             action={
               openRecs.length > 0 ? (
@@ -135,7 +135,7 @@ export default async function FixesPage({ params }: { params: Promise<{ id: stri
 
         {openRecs.length === 0 ? (
           <Card className="py-8 text-center text-sm font-bold text-zinc-500">
-            No open recommendations — you&apos;re clear, or run a fresh scan.
+            No open recommendations. You&apos;re clear, or run a fresh scan.
           </Card>
         ) : (
           <div className="flex flex-col gap-4">
@@ -156,7 +156,7 @@ export default async function FixesPage({ params }: { params: Promise<{ id: stri
                 {rec.after ? (
                   <FixWordingDiff before={rec.before} after={rec.after} variant="brutal" />
                 ) : rec.action ? (
-                  <div className="border-4 border-black bg-[var(--brutal-yellow)] p-3">
+                  <div className="rounded-xl border border-[var(--line)] bg-[var(--rust-soft)] p-3">
                     <span className="b-kicker mr-2">Do this</span>
                     <span className="text-sm font-bold">{rec.action}</span>
                   </div>

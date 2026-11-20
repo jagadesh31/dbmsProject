@@ -1,10 +1,8 @@
 import type { ReactNode } from "react";
 
 /**
- * Neo-brutalist primitives. Every page composes these so the visual language is
- * defined once: hard black borders, offset solid shadows, uppercase black type
- * and flat accents. Props are unchanged from the previous design on purpose, so
- * existing call sites keep working.
+ * Seenly dashboard primitives — paper / ink / rust / sage.
+ * Props stay stable so existing call sites keep working.
  */
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
@@ -102,13 +100,13 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 border-4 border-dashed border-zinc-400 bg-white p-8 text-center">
+    <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-[var(--line)] bg-white/80 p-8 text-center">
       {icon ? <div className="text-2xl">{icon}</div> : null}
       <div>
         <p className="b-display text-base">{title}</p>
-        {hint ? <p className="mt-1 text-sm font-bold text-zinc-500">{hint}</p> : null}
+        {hint ? <p className="mt-1 text-sm font-medium text-zinc-500">{hint}</p> : null}
       </div>
-      {action ? <div className="mt-2">{action}</div> : null}
+      {action ? <div className="mt-2 w-full">{action}</div> : null}
     </div>
   );
 }
@@ -159,11 +157,8 @@ export function MetricBar({
         <span className="b-kicker text-zinc-500">{label}</span>
         <span className="b-mono text-xs font-black tabular-nums">{pct === null ? "–" : `${pct}%`}</span>
       </div>
-      <div
-        className="h-4 w-full border-black bg-zinc-100"
-        style={{ borderWidth: 3, borderStyle: "solid" }}
-      >
-        <div className={`h-full ${color} transition-all duration-500`} style={{ width: `${pct ?? 0}%` }} />
+      <div className="h-2.5 w-full overflow-hidden rounded-full bg-zinc-100">
+        <div className={`h-full rounded-full ${color} transition-all duration-500`} style={{ width: `${pct ?? 0}%` }} />
       </div>
       {hint ? <p className="mt-2 text-xs font-bold text-zinc-500">{hint}</p> : null}
     </div>

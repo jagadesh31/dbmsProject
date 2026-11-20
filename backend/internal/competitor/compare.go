@@ -84,7 +84,7 @@ Give 3-5 insights. Prefer specific wording/positioning gaps over generic SEO adv
 	raw, err := llm.CompleteJSON(context.Background(), llm.GetModel(), []openai.ChatCompletionMessage{
 		{
 			Role:    openai.ChatMessageRoleSystem,
-			Content: "You are a D2C competitive content analyst. Reply with JSON only.",
+			Content: "You are a competitive content analyst for brands. Reply with JSON only.",
 		},
 		{Role: openai.ChatMessageRoleUser, Content: prompt},
 	}, 0.2)

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { DomainIntake } from "@/components/DomainIntake";
 import { LoginButton } from "@/components/LoginButton";
 
-/** Minimal landing — domain in, clarity out. */
+/** Landing: brand first, one clear action. */
 export default function LandingPage() {
   return (
     <div className="analysis-surface flex min-h-screen flex-col overflow-hidden">
@@ -15,7 +15,7 @@ export default function LandingPage() {
       <nav className="relative z-10 flex items-center justify-between px-6 py-6 md:px-10">
         <Link href="/" className="flex items-center gap-3">
           <span className="font-[family-name:var(--font-display)] text-2xl tracking-tight text-[var(--ink)]">
-            Visora
+            Seenly
           </span>
         </Link>
         <div className="flex items-center gap-5">
@@ -24,23 +24,28 @@ export default function LandingPage() {
       </nav>
 
       <main className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 pb-20 pt-8 text-center">
-        <p className="font-[family-name:var(--font-display)] text-5xl tracking-tight text-[var(--ink)] md:text-6xl lg:text-7xl">
-          Visora
+        <p className="reveal-item font-[family-name:var(--font-display)] text-5xl tracking-tight text-[var(--ink)] md:text-6xl lg:text-7xl">
+          Seenly
         </p>
-        <h1 className="mt-4 max-w-3xl font-[family-name:var(--font-display)] text-2xl leading-snug text-[var(--ink)] md:text-4xl">
-          Know exactly where your brand gets found.
+        <h1
+          className="reveal-item mt-4 max-w-3xl font-[family-name:var(--font-display)] text-2xl leading-snug text-[var(--ink)] md:text-4xl"
+          style={{ animationDelay: "80ms" }}
+        >
+          See where your brand gets found.
         </h1>
-        <p className="mx-auto mt-5 max-w-lg text-base font-medium leading-relaxed text-zinc-500 md:text-lg">
-          See how you show up on Google and in ChatGPT — and what to do next.
+        <p
+          className="reveal-item mx-auto mt-5 max-w-lg text-base font-medium leading-relaxed text-zinc-500 md:text-lg"
+          style={{ animationDelay: "140ms" }}
+        >
+          Check Google and AI answers for your brand. Then fix the gaps.
         </p>
 
-        <div className="mt-11 w-full max-w-2xl">
-          <DomainIntake cta="See where you show up" />
+        <div className="reveal-item mt-11 w-full max-w-2xl" style={{ animationDelay: "200ms" }}>
+          <DomainIntake cta="Check my site" />
           <p className="mt-4 text-xs font-medium text-zinc-400">
-            Your website, plus how you want to be known if that is not obvious from the site. A couple of minutes.
+            Free scan, no Google login. Sign in when you want the full report.
           </p>
         </div>
-
       </main>
     </div>
   );

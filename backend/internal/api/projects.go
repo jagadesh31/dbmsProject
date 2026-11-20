@@ -3,9 +3,11 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"visora-backend/internal/auth"
 	"visora-backend/internal/db"
 	"visora-backend/internal/noise"
 )
@@ -26,17 +28,11 @@ func GetProjects(c *gin.Context) {
 	c.JSON(http.StatusOK, projects)
 }
 
-// GetProject gets a specific project by ID
+// GetProject gets a specific project by ID (ownership already checked by middleware).
 func GetProject(c *gin.Context) {
-	userEmail := c.GetHeader("X-User-Email")
-	if userEmail == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User email required"})
-		return
-	}
-
 	id := c.Param("id")
 	var project db.Project
-	if err := db.DB.Where("id = ? AND user_email = ?", id, userEmail).First(&project).Error; err != nil {
+	if err := db.DB.Where("id = ?", id).First(&project).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
 		return
 	}
@@ -46,10 +42,12 @@ func GetProject(c *gin.Context) {
 type CreateProjectInput struct {
 	Website string `json:"website" binding:"required"`
 	// Positioning is the optional north-star sentence the client provides
-	// (e.g. "Evening sacks for Indian wedding guests"). It is stored on the
+	// (e.g. "Premium skincare for sensitive skin"). It is stored on the
 	// project and threaded through brand, search-intent, GEO, competitor, and
 	// recommendation AI calls so every step serves that positioning first.
 	Positioning string `json:"positioning"`
+	// Turnstile is required for anonymous free scans when TURNSTILE_SECRET_KEY is set.
+	Turnstile string `json:"turnstile"`
 	// MaxPages and SitemapURL come from the advanced options on the onboarding
 	// screen. They are applied to the first crawl of the project.
 	MaxPages   int    `json:"max_pages"`
@@ -63,6 +61,7 @@ const (
 )
 
 // CreateProject creates a new project and queues its first full scan.
+// Logged-out visitors may start one free scan (tracked by seenly_guest cookie).
 func CreateProject(c *gin.Context) {
 	var input CreateProjectInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -70,21 +69,44 @@ func CreateProject(c *gin.Context) {
 		return
 	}
 
-	userEmail := c.GetHeader("X-User-Email")
+	userEmail := strings.TrimSpace(strings.ToLower(actorEmail(c)))
 	if userEmail == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User email required"})
-		return
+		userEmail = strings.TrimSpace(strings.ToLower(c.GetHeader("X-User-Email")))
 	}
+	guestID := actorGuest(c)
 
-	// Check if user already has a project
-	var count int64
-	db.DB.Model(&db.Project{}).Where("user_email = ?", userEmail).Count(&count)
-	if count > 0 {
-		var existing db.Project
-		db.DB.Where("user_email = ?", userEmail).First(&existing)
-		// If they already have a project, we can just return it so they get redirected to it
-		c.JSON(http.StatusOK, existing)
-		return
+	if userEmail != "" {
+		var count int64
+		db.DB.Model(&db.Project{}).Where("user_email = ?", userEmail).Count(&count)
+		if count > 0 {
+			var existing db.Project
+			db.DB.Where("user_email = ?", userEmail).First(&existing)
+			c.JSON(http.StatusOK, existing)
+			return
+		}
+	} else {
+		ok, msg := auth.GuestCanStartScan(guestID)
+		if !ok {
+			c.JSON(http.StatusTooManyRequests, gin.H{
+				"error":          msg,
+				"login_required": true,
+			})
+			return
+		}
+		// Cookie quota + Turnstile (no IP limits — offices share one public IP).
+		if strings.TrimSpace(os.Getenv("TURNSTILE_SECRET_KEY")) != "" {
+			token := strings.TrimSpace(input.Turnstile)
+			if token == "" {
+				token = strings.TrimSpace(c.GetHeader("X-Turnstile-Token"))
+			}
+			if err := auth.VerifyTurnstile(token, ""); err != nil {
+				c.JSON(http.StatusForbidden, gin.H{
+					"error":     "Please complete the human check to start a free Seenly scan.",
+					"turnstile": true,
+				})
+				return
+			}
+		}
 	}
 
 	maxPages := input.MaxPages
@@ -94,15 +116,20 @@ func CreateProject(c *gin.Context) {
 	if maxPages > maxAllowedPages {
 		maxPages = maxAllowedPages
 	}
+	// Guests get a smaller crawl so free credits stay bounded.
+	if userEmail == "" && maxPages > 30 {
+		maxPages = 30
+	}
 
 	project := db.Project{
 		Name:        "Pending Analysis",
 		Brand:       "Pending",
 		Website:     input.Website,
 		Category:    "Unknown",
-		Country:     "India",
+		Country:     "",
 		Positioning: strings.TrimSpace(input.Positioning),
 		UserEmail:   userEmail,
+		GuestID:     guestID,
 		Competitors: "[]",
 		ProfileData: "{}",
 	}
@@ -110,6 +137,10 @@ func CreateProject(c *gin.Context) {
 	if err := db.DB.Create(&project).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create project"})
 		return
+	}
+
+	if userEmail == "" {
+		auth.RecordGuestScan(guestID)
 	}
 
 	run := db.CrawlRun{

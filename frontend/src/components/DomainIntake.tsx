@@ -1,10 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuthModal } from "@/components/AuthModal";
 
-function isAuthError(message?: string) {
-  return (message ?? "").toLowerCase().includes("authentication required");
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
+
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (
+        el: HTMLElement,
+        opts: {
+          sitekey: string;
+          callback: (token: string) => void;
+          "expired-callback"?: () => void;
+          "error-callback"?: () => void;
+          theme?: "light" | "dark" | "auto";
+        },
+      ) => string;
+      reset: (id?: string) => void;
+      remove: (id: string) => void;
+    };
+  }
 }
 
 function afterLoginUrl() {
@@ -23,9 +40,9 @@ function rememberPositioning(positioning: string) {
   }
 }
 
-/** Landing intake — remembers the URL and optional positioning, then login starts the first scan. */
+/** Landing intake: starts a free scan; Google login opens the full report. */
 export function DomainIntake({
-  cta = "See where you show up",
+  cta = "Check my site",
   compact = false,
 }: {
   cta?: string;
@@ -36,11 +53,70 @@ export function DomainIntake({
   const [positioning, setPositioning] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [scriptReady, setScriptReady] = useState(false);
+  const widgetRef = useRef<HTMLDivElement>(null);
+  const widgetId = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!TURNSTILE_SITE_KEY) return;
+    if (window.turnstile) {
+      setScriptReady(true);
+      return;
+    }
+    const existing = document.querySelector<HTMLScriptElement>('script[data-seenly-turnstile="1"]');
+    if (existing) {
+      existing.addEventListener("load", () => setScriptReady(true));
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+    script.async = true;
+    script.defer = true;
+    script.dataset.seenlyTurnstile = "1";
+    script.onload = () => setScriptReady(true);
+    document.head.appendChild(script);
+  }, []);
+
+  useEffect(() => {
+    if (!TURNSTILE_SITE_KEY || !scriptReady || !widgetRef.current || !window.turnstile) return;
+    if (widgetId.current) {
+      window.turnstile.remove(widgetId.current);
+      widgetId.current = null;
+    }
+    setTurnstileToken("");
+    widgetId.current = window.turnstile.render(widgetRef.current, {
+      sitekey: TURNSTILE_SITE_KEY,
+      theme: "light",
+      callback: (next) => setTurnstileToken(next),
+      "expired-callback": () => setTurnstileToken(""),
+      "error-callback": () => setTurnstileToken(""),
+    });
+    return () => {
+      if (widgetId.current && window.turnstile) {
+        window.turnstile.remove(widgetId.current);
+        widgetId.current = null;
+      }
+    };
+  }, [scriptReady]);
+
+  const resetTurnstile = () => {
+    setTurnstileToken("");
+    if (widgetId.current && window.turnstile) {
+      window.turnstile.reset(widgetId.current);
+    }
+  };
 
   const submitWebsite = async (raw: string, pos: string) => {
     setIsLoading(true);
     setError("");
     try {
+      if (TURNSTILE_SITE_KEY && !turnstileToken) {
+        setError("Complete the human check, then try again.");
+        setIsLoading(false);
+        return;
+      }
+
       let website = raw.trim();
       if (website && !/^https?:\/\//i.test(website)) {
         website = `https://${website}`;
@@ -53,30 +129,27 @@ export function DomainIntake({
       if (pos.trim()) {
         formData.append("positioning", pos.trim());
       }
+      if (turnstileToken) {
+        formData.append("turnstile", turnstileToken);
+      }
 
       const { createProjectAction } = await import("@/app/actions");
       const result = await createProjectAction(formData);
 
-      if (isAuthError(result?.error)) {
-        openAuthModal(afterLoginUrl());
+      if (result?.login_required || result?.error) {
+        if (result.login_required) {
+          openAuthModal(afterLoginUrl());
+        }
+        if (result.error) setError(result.error);
+        resetTurnstile();
         setIsLoading(false);
         return;
-      }
-
-      if (result?.error) {
-        throw new Error(result.error);
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Something went wrong.";
       if (message.includes("NEXT_REDIRECT")) throw err;
-      if (isAuthError(message)) {
-        rememberWebsite(raw.trim());
-        rememberPositioning(positioning.trim());
-        openAuthModal(afterLoginUrl());
-        setIsLoading(false);
-        return;
-      }
       setError(message);
+      resetTurnstile();
       setIsLoading(false);
     }
   };
@@ -104,31 +177,36 @@ export function DomainIntake({
         />
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={isLoading || (Boolean(TURNSTILE_SITE_KEY) && !turnstileToken)}
           className="shrink-0 bg-[var(--ink)] px-7 py-4 text-sm font-black uppercase tracking-[0.14em] text-[var(--paper)] transition hover:bg-[var(--rust)] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isLoading ? "Opening…" : cta}
         </button>
       </div>
 
-      {/* Optional positioning line — the north star for the scan */}
       <div className="mt-3">
         <input
           id="positioning"
           name="positioning"
           type="text"
           inputMode="text"
-          placeholder='How should we talk about you? e.g. "Evening sacks for Indian wedding guests"'
+          placeholder='How should we talk about you? e.g. "Premium skincare for sensitive skin"'
           value={positioning}
           onChange={(e) => setPositioning(e.target.value)}
           disabled={isLoading}
           className="w-full border border-[var(--line)] bg-white/60 px-5 py-3 text-sm font-medium text-[var(--ink)] shadow-[0_1px_0_rgba(15,15,14,0.04)] outline-none transition placeholder:text-zinc-400 focus:border-[var(--ink)] focus:bg-white disabled:opacity-60"
         />
         <p className="mt-1.5 text-xs text-zinc-400">
-          <span className="font-semibold text-zinc-500">Optional.</span>{" "}
-          Skip it and we infer from the site. Fill it and every search, AI question, and recommendation is tailored to that position.
+          <span className="font-semibold text-zinc-500">No signup to scan.</span>{" "}
+          One free analysis. Sign in with Google to open the full report.
         </p>
       </div>
+
+      {TURNSTILE_SITE_KEY ? (
+        <div className="mt-3 flex justify-start">
+          <div ref={widgetRef} />
+        </div>
+      ) : null}
 
       {error ? (
         <p className="mt-3 border border-[var(--rust)] bg-[var(--rust-soft)] px-3 py-2 text-sm font-medium text-[var(--ink)]">

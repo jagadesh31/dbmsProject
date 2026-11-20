@@ -16,7 +16,7 @@ func TestBodyTextKeepsBlocksApart(t *testing.T) {
   <p>One board for Amazon, Flipkart and Shopify orders.</p><p>Pack, ship and track without switching tabs.</p>
   <ul><li>Stage actions</li><li>Shipment labels</li></ul>
 </main>
-<footer>© FyBud</footer>
+<footer>© ExampleCo</footer>
 </body></html>`
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(src))
 	if err != nil {
@@ -29,7 +29,7 @@ func TestBodyTextKeepsBlocksApart(t *testing.T) {
 			t.Fatalf("text glued together (%q) in:\n%s", glued, page.BodyText)
 		}
 	}
-	if strings.Contains(page.BodyText, "© FyBud") || strings.Contains(page.BodyText, "Pricing") {
+	if strings.Contains(page.BodyText, "© ExampleCo") || strings.Contains(page.BodyText, "Pricing") {
 		t.Fatalf("site chrome leaked into body:\n%s", page.BodyText)
 	}
 	if !strings.Contains(page.H1, "Order desk Every marketplace order.") {

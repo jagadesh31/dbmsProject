@@ -68,8 +68,8 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
   return (
     <div className="b-surface flex flex-col gap-8 p-6 md:p-8">
       {summary && summary.activeJobs.length > 0 ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-4 border-black bg-[var(--brutal-cyan)] px-5 py-4">
-          <span className="text-sm font-black uppercase tracking-wide">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--line)] bg-[var(--sage-soft)] px-5 py-4">
+          <span className="text-sm font-semibold tracking-wide text-[var(--ink)]">
             {summary.activeJobs.length} check{summary.activeJobs.length === 1 ? "" : "s"} running
           </span>
           <Link href={`/projects/${id}/scan`} className="b-btn b-btn-sm">
@@ -81,7 +81,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="b-display text-3xl md:text-4xl">{project.domain}</h1>
-          <p className="mt-1 text-sm font-bold text-zinc-600">
+          <p className="mt-1 text-sm font-medium text-zinc-500">
             {project.brand} · {project.category}
           </p>
         </div>
@@ -96,10 +96,10 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
       </header>
 
       {neverScanned ? (
-        <div className="border-4 border-black bg-[var(--brutal-yellow)] p-5">
+        <div className="rounded-2xl border border-[var(--line)] bg-[var(--rust-soft)] p-5">
           <h2 className="b-display text-lg">No scan yet</h2>
-          <p className="mt-1 text-sm font-bold">
-            Run an analysis to get paste-ready SEO & AI visibility changes for this site.
+          <p className="mt-1 text-sm font-medium text-zinc-600">
+            Run an analysis to get ready-to-copy SEO and AI visibility changes for this site.
           </p>
           <Link href={`/projects/${id}/scan`} className="b-btn b-btn-primary mt-4">
             Start scan
@@ -135,11 +135,13 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
               : `${summary?.geo.promptsDone ?? 0} answers · ${formatPercent(summary?.geo.mentionRate ?? null)} mentioned`}
           </span>
         </Card>
-        <Card className="flex flex-col gap-1 border-4 border-black bg-[var(--brutal-emerald)]">
+        <Card className="flex flex-col gap-1 bg-[var(--sage-soft)] !border-transparent">
           <span className="b-kicker">Ready to change</span>
-          <span className="b-mono text-4xl font-black tabular-nums">{pendingFixes || openRecs.length}</span>
-          <Link href={`/projects/${id}/fixes`} className="mt-1 text-xs font-black uppercase tracking-wide underline">
-            {pendingFixes > 0 ? `${pendingFixes} paste-ready fixes` : `${openRecs.length} open actions`} →
+          <span className="font-[family-name:var(--font-display)] text-4xl tabular-nums text-[var(--ink)]">
+            {pendingFixes || openRecs.length}
+          </span>
+          <Link href={`/projects/${id}/fixes`} className="mt-1 text-xs font-semibold uppercase tracking-wide text-[var(--sage)] underline">
+            {pendingFixes > 0 ? `${pendingFixes} ready-to-copy fixes` : `${openRecs.length} open actions`} →
           </Link>
         </Card>
       </section>

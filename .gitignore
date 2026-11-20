@@ -7,18 +7,17 @@ Thumbs.db
 .vscode/
 *.iml
 
-# ── Environment files ─────────────────────────────────────────────────────────
-# Never commit real secrets — only commit template files
+# ── Environment files (never commit secrets) ──────────────────────────────────
 .env
 .env.*
 .env.local
 .env.deploy
-!.env.example
-!.env.*.example
-!.env.production       # ← template files ARE committed (no real secrets in them)
-!backend/.env.production
-!frontend/.env.production
 .env.production
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.*.example
+
 # ── Node / Frontend ───────────────────────────────────────────────────────────
 node_modules/
 .next/
@@ -35,13 +34,4 @@ backend/*.test
 backend/coverage.out
 
 # ── Docker ────────────────────────────────────────────────────────────────────
-# Keep compose files, ignore override secrets
 docker-compose.override.yml
-
-# ── Logs ─────────────────────────────────────────────────────────────────────
-*.log
-logs/
-
-# ── Temp / scratch ────────────────────────────────────────────────────────────
-.tmp_recover/
-tmp/

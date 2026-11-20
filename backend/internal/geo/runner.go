@@ -26,12 +26,15 @@ var (
 )
 // RunMultiModelGeo executes GEO checks using the same search intents used for Google SERP.
 func RunMultiModelGeo(projectID uint) (uint, error) {
-	apiKey := os.Getenv("GEO_OPENAI_API_KEY")
+	apiKey := os.Getenv("DEEPSEEK_API_KEY")
+	if apiKey == "" {
+		apiKey = os.Getenv("GEO_OPENAI_API_KEY")
+	}
 	if apiKey == "" {
 		apiKey = os.Getenv("OPENAI_API_KEY")
 	}
 	if apiKey == "" {
-		return 0, fmt.Errorf("GEO is not configured: set GEO_OPENAI_API_KEY or OPENAI_API_KEY")
+		return 0, fmt.Errorf("GEO is not configured: set DEEPSEEK_API_KEY (or OPENAI_API_KEY)")
 	}
 
 	if err := syncPromptsFromSearchIntents(projectID); err != nil {
@@ -55,11 +58,11 @@ func RunMultiModelGeo(projectID uint) (uint, error) {
 		model  string
 		label  string
 	}{
-		// Spread across providers so one free-model RPM bucket cannot wipe all 4 cards.
-		{"chatgpt", llm.CanonicalModel(getEnvOrDefault("GEO_MODEL_GPT", "openai/gpt-4o-mini")), "chatgpt"},
-		{"claude", llm.CanonicalModel(getEnvOrDefault("GEO_MODEL_CLAUDE", "alibaba/qwen3.5-flash")), "claude"},
-		{"gemini", llm.CanonicalModel(getEnvOrDefault("GEO_MODEL_GEMINI", "google/gemini-2.5-flash-lite")), "gemini"},
-		{"grok", llm.CanonicalModel(getEnvOrDefault("GEO_MODEL_GROK", "alibaba/qwen3.5-flash")), "grok"},
+		// All four UI cards run DeepSeek Flash (cheap). Labels stay for the product UI.
+		{"chatgpt", llm.CanonicalModel(getEnvOrDefault("GEO_MODEL_GPT", "deepseek-flash")), "chatgpt"},
+		{"claude", llm.CanonicalModel(getEnvOrDefault("GEO_MODEL_CLAUDE", "deepseek-flash")), "claude"},
+		{"gemini", llm.CanonicalModel(getEnvOrDefault("GEO_MODEL_GEMINI", "deepseek-flash")), "gemini"},
+		{"grok", llm.CanonicalModel(getEnvOrDefault("GEO_MODEL_GROK", "deepseek-flash")), "grok"},
 	}
 
 	started := time.Now()
@@ -275,7 +278,7 @@ func queryVyce(
 	promptIndex, promptsTotal int,
 	done, failed *int64,
 ) {
-	if os.Getenv("GEO_OPENAI_API_KEY") == "" && os.Getenv("OPENAI_API_KEY") == "" {
+	if os.Getenv("DEEPSEEK_API_KEY") == "" && os.Getenv("GEO_OPENAI_API_KEY") == "" && os.Getenv("OPENAI_API_KEY") == "" {
 		atomic.AddInt64(failed, 1)
 		return
 	}

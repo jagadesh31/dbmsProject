@@ -14,101 +14,112 @@ import (
 	"github.com/sashabaranov/go-openai"
 )
 
-const (
-	modelGeminiLite = "google/gemini-2.5-flash-lite"
-	modelQwenFlash  = "alibaba/qwen3.5-flash"
-	modelGPTMini    = "openai/gpt-4o-mini"
-)
+// Cheap DeepSeek Flash — used for every Seenly LLM call (brand, intents, GEO cards, fixes).
+const modelDeepSeekFlash = "deepseek-flash"
 
-// GetModel returns the unified model for brand, intents, gaps, recommendations, fixes, and GEO.
+// GetModel returns the unified cheap DeepSeek model for all pipeline steps.
 func GetModel() string {
-	return CanonicalModel(os.Getenv("VISORA_LLM_MODEL"))
+	return CanonicalModel(firstNonEmpty(
+		os.Getenv("DEEPSEEK_MODEL"),
+		os.Getenv("VISORA_LLM_MODEL"),
+		modelDeepSeekFlash,
+	))
 }
 
-// CanonicalModel remaps gated/broken gateway IDs onto cheap working ones.
+// CanonicalModel forces every configured model id onto DeepSeek Flash (cheap).
 func CanonicalModel(model string) string {
 	m := strings.ToLower(strings.TrimSpace(model))
-	switch {
-	case m == "":
-		return modelGeminiLite
-	case strings.Contains(m, "deepseek-v4"), strings.Contains(m, "deepseek/deepseek-v4"):
-		return modelGeminiLite
-	case strings.Contains(m, "ling-3.0"), strings.Contains(m, "sante-free"):
-		return modelQwenFlash
-	case strings.Contains(m, "poolside"), strings.Contains(m, "laguna"):
-		return modelQwenFlash
-	default:
-		return strings.TrimSpace(model)
+	if m == "" {
+		return modelDeepSeekFlash
 	}
+	// Already a native DeepSeek Flash id (including legacy aliases DeepSeek still accepts).
+	switch m {
+	case "deepseek-flash", "deepseek-v4-flash", "deepseek-v4-flash-vision-exp",
+		"deepseek-chat", "deepseek/deepseek-flash", "deepseek/deepseek-v4-flash",
+		"deepseek/deepseek-v4-flash-vision-exp", "deepseek/deepseek-chat":
+		return modelDeepSeekFlash
+	}
+	if strings.Contains(m, "deepseek") && (strings.Contains(m, "flash") || strings.Contains(m, "chat")) {
+		return modelDeepSeekFlash
+	}
+	// Anything else (gateway slugs, Claude, Gemini, Grok, Pro) → cheap Flash.
+	return modelDeepSeekFlash
 }
 
 func fallbackModels(primary string) []string {
-	seen := map[string]bool{}
-	out := make([]string, 0, 4)
-	add := func(m string) {
-		m = CanonicalModel(m)
-		if m == "" || seen[m] {
-			return
-		}
-		seen[m] = true
-		out = append(out, m)
-	}
-	add(primary)
-	add(modelGeminiLite)
-	add(modelQwenFlash)
-	add(modelGPTMini)
-	return out
+	flash := CanonicalModel(primary)
+	return []string{flash}
 }
 
-// GetGeoModel returns the model for GEO queries (defaults to the same cheap gateway model).
+// GetGeoModel returns the GEO model (always cheap DeepSeek Flash).
 func GetGeoModel() string {
-	model := os.Getenv("GEO_OPENAI_MODEL")
-	if model == "" {
-		return GetModel()
-	}
-	return model
+	return CanonicalModel(firstNonEmpty(os.Getenv("GEO_OPENAI_MODEL"), GetModel()))
+}
+
+func apiKey() string {
+	return firstNonEmpty(
+		strings.TrimSpace(os.Getenv("DEEPSEEK_API_KEY")),
+		strings.TrimSpace(os.Getenv("OPENAI_API_KEY")),
+		strings.TrimSpace(os.Getenv("GEO_OPENAI_API_KEY")),
+	)
 }
 
 func apiBaseURL() string {
-	base := strings.TrimRight(os.Getenv("OPENAI_BASE_URL"), "/")
-	if base == "" {
-		return "https://ai-gateway.vercel.sh/v1"
+	base := firstNonEmpty(
+		strings.TrimRight(os.Getenv("DEEPSEEK_BASE_URL"), "/"),
+		strings.TrimRight(os.Getenv("OPENAI_BASE_URL"), "/"),
+		strings.TrimRight(os.Getenv("GEO_OPENAI_BASE_URL"), "/"),
+		"https://api.deepseek.com/v1",
+	)
+	// If someone left the Vercel gateway URL while using a DeepSeek key, force DeepSeek host.
+	if strings.Contains(strings.ToLower(base), "ai-gateway.vercel") || strings.Contains(strings.ToLower(base), "openai.com") {
+		if strings.TrimSpace(os.Getenv("DEEPSEEK_API_KEY")) != "" || preferDeepSeek() {
+			return "https://api.deepseek.com/v1"
+		}
+	}
+	if !strings.HasSuffix(base, "/v1") && strings.Contains(strings.ToLower(base), "deepseek.com") {
+		return strings.TrimRight(base, "/") + "/v1"
 	}
 	return base
 }
 
-// zaiThinkingNeeded is true only for Z.AI flash models that otherwise dump into reasoning_content.
-func zaiThinkingNeeded(base string) bool {
-	return strings.Contains(strings.ToLower(base), "z.ai")
+func preferDeepSeek() bool {
+	m := strings.ToLower(firstNonEmpty(os.Getenv("DEEPSEEK_MODEL"), os.Getenv("VISORA_LLM_MODEL")))
+	return strings.Contains(m, "deepseek") || m == ""
 }
 
-// NewClient builds an OpenAI-compatible client (Vercel AI Gateway / Z.AI / OpenAI).
-func NewClient() (*openai.Client, error) {
-	apiKey := os.Getenv("OPENAI_API_KEY")
-	if apiKey == "" {
-		return nil, fmt.Errorf("OPENAI_API_KEY not set")
+func credentialsForModel(model string) (key, base string) {
+	_ = model
+	return apiKey(), apiBaseURL()
+}
+
+func nativeDeepSeekModel(model, base string) string {
+	model = CanonicalModel(model)
+	if strings.Contains(strings.ToLower(base), "deepseek.com") {
+		// Native DeepSeek Chat Completions ids (no provider prefix).
+		return modelDeepSeekFlash
 	}
-	config := openai.DefaultConfig(apiKey)
+	return model
+}
+
+func deepSeekThinkingDisabled(base string) bool {
+	return strings.Contains(strings.ToLower(base), "deepseek.com")
+}
+
+// NewClient builds an OpenAI-compatible client pointed at DeepSeek.
+func NewClient() (*openai.Client, error) {
+	key := apiKey()
+	if key == "" {
+		return nil, fmt.Errorf("DEEPSEEK_API_KEY (or OPENAI_API_KEY) not set")
+	}
+	config := openai.DefaultConfig(key)
 	config.BaseURL = apiBaseURL()
 	return openai.NewClientWithConfig(config), nil
 }
 
-// NewGeoClient builds the GEO client — same gateway key/base as core AI by default.
+// NewGeoClient builds the GEO client — same DeepSeek key/base as core AI.
 func NewGeoClient() (*openai.Client, error) {
-	apiKey := os.Getenv("GEO_OPENAI_API_KEY")
-	if apiKey == "" {
-		apiKey = os.Getenv("OPENAI_API_KEY")
-	}
-	if apiKey == "" {
-		return nil, fmt.Errorf("GEO_OPENAI_API_KEY not set")
-	}
-	config := openai.DefaultConfig(apiKey)
-	if base := os.Getenv("GEO_OPENAI_BASE_URL"); base != "" {
-		config.BaseURL = strings.TrimRight(base, "/")
-	} else {
-		config.BaseURL = apiBaseURL()
-	}
-	return openai.NewClientWithConfig(config), nil
+	return NewClient()
 }
 
 type chatMessage struct {
@@ -139,7 +150,7 @@ type chatResponse struct {
 	} `json:"error"`
 }
 
-// Complete calls the configured OpenAI-compatible API (Vercel AI Gateway by default).
+// Complete calls DeepSeek Flash (OpenAI-compatible chat completions).
 func Complete(ctx context.Context, model string, messages []openai.ChatCompletionMessage, temperature float32, maxTokens int) (string, error) {
 	var lastErr error
 	for _, try := range fallbackModels(model) {
@@ -156,21 +167,22 @@ func Complete(ctx context.Context, model string, messages []openai.ChatCompletio
 }
 
 func completeOnce(ctx context.Context, model string, messages []openai.ChatCompletionMessage, temperature float32, maxTokens int) (string, error) {
-	apiKey := os.Getenv("OPENAI_API_KEY")
-	base := apiBaseURL()
-	if apiKey == "" {
-		return "", fmt.Errorf("OPENAI_API_KEY not set")
-	}
 	if model == "" {
 		model = GetModel()
 	}
+	key, base := credentialsForModel(model)
+	if key == "" {
+		return "", fmt.Errorf("DEEPSEEK_API_KEY (or OPENAI_API_KEY) not set")
+	}
+	model = nativeDeepSeekModel(model, base)
 
 	payload := chatRequest{
 		Model:       model,
 		Temperature: temperature,
 		MaxTokens:   maxTokens,
 	}
-	if zaiThinkingNeeded(base) {
+	// Flash defaults to thinking mode — disable it to keep Seenly cheap + fast.
+	if deepSeekThinkingDisabled(base) {
 		payload.Thinking = &struct{ Type string `json:"type"` }{Type: "disabled"}
 	}
 	for _, m := range messages {
@@ -182,7 +194,7 @@ func completeOnce(ctx context.Context, model string, messages []openai.ChatCompl
 	if err != nil {
 		return "", err
 	}
-	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Authorization", "Bearer "+key)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept-Language", "en-US,en")
 
@@ -213,7 +225,7 @@ func completeOnce(ctx context.Context, model string, messages []openai.ChatCompl
 		text = strings.TrimSpace(parsed.Choices[0].Message.ReasoningContent)
 	}
 	if text == "" {
-		return "", fmt.Errorf("empty LLM content from %s (try a non-reasoning model)", model)
+		return "", fmt.Errorf("empty LLM content from %s", model)
 	}
 	return text, nil
 }
@@ -233,14 +245,9 @@ func CompleteJSON(ctx context.Context, model string, messages []openai.ChatCompl
 		}
 		if err != nil {
 			lastErr = err
-			msg := strings.ToLower(err.Error())
-			if strings.Contains(msg, "403") || strings.Contains(msg, "404") || strings.Contains(msg, "forbidden") || strings.Contains(msg, "not found") {
-				continue
-			}
 		}
 	}
 
-	// Last resort: plain completion, then pull the first JSON object out.
 	for _, try := range models {
 		text, err := Complete(ctx, try, messages, temperature, 4096)
 		if err != nil {
@@ -259,14 +266,11 @@ func CompleteJSON(ctx context.Context, model string, messages []openai.ChatCompl
 }
 
 func completeJSONOnce(ctx context.Context, model string, messages []openai.ChatCompletionMessage, temperature float32) (string, error) {
-	apiKey := os.Getenv("OPENAI_API_KEY")
-	if apiKey == "" {
-		apiKey = os.Getenv("GEO_OPENAI_API_KEY")
+	key, base := credentialsForModel(model)
+	if key == "" {
+		return "", fmt.Errorf("DEEPSEEK_API_KEY (or OPENAI_API_KEY) not set")
 	}
-	base := apiBaseURL()
-	if apiKey == "" {
-		return "", fmt.Errorf("OPENAI_API_KEY not set")
-	}
+	model = nativeDeepSeekModel(model, base)
 
 	payload := chatRequest{
 		Model:       model,
@@ -276,7 +280,7 @@ func completeJSONOnce(ctx context.Context, model string, messages []openai.ChatC
 			"type": "json_object",
 		},
 	}
-	if zaiThinkingNeeded(base) {
+	if deepSeekThinkingDisabled(base) {
 		payload.Thinking = &struct{ Type string `json:"type"` }{Type: "disabled"}
 	}
 	for _, m := range messages {
@@ -288,7 +292,7 @@ func completeJSONOnce(ctx context.Context, model string, messages []openai.ChatC
 	if err != nil {
 		return "", err
 	}
-	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Authorization", "Bearer "+key)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept-Language", "en-US,en")
 
@@ -308,7 +312,7 @@ func completeJSONOnce(ctx context.Context, model string, messages []openai.ChatC
 		payload.ResponseFormat = nil
 		body2, _ := json.Marshal(payload)
 		req2, _ := http.NewRequestWithContext(ctx, http.MethodPost, base+"/chat/completions", bytes.NewReader(body2))
-		req2.Header.Set("Authorization", "Bearer "+apiKey)
+		req2.Header.Set("Authorization", "Bearer "+key)
 		req2.Header.Set("Content-Type", "application/json")
 		res2, err2 := client.Do(req2)
 		if err2 != nil {
@@ -341,6 +345,15 @@ func truncate(s string, n int) string {
 		return s
 	}
 	return s[:n] + "…"
+}
+
+func firstNonEmpty(vals ...string) string {
+	for _, v := range vals {
+		if strings.TrimSpace(v) != "" {
+			return strings.TrimSpace(v)
+		}
+	}
+	return ""
 }
 
 // ExtractJSONObject pulls the first complete JSON object from an LLM response that may

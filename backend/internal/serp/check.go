@@ -56,7 +56,7 @@ func CheckProjectIntents(projectID uint) error {
 			sem <- struct{}{}
 			defer func() { <-sem }()
 
-			entries, err := CheckQuery(intent.Keyword)
+			entries, err := CheckQueryInMarket(intent.Keyword, project.Country)
 			if err != nil {
 				atomic.AddInt64(&notFound, 1)
 				n := atomic.AddInt64(&checked, 1)

@@ -326,14 +326,14 @@ export function GooglePanel({
                 <div className="flex items-center gap-2 rounded-lg border border-[#e6f4ea] bg-[#e6f4ea] px-4 py-3 shadow-sm">
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#34a853] text-[10px] font-black text-white">✓</span>
                   <span className="text-xs font-bold text-[#137333]">
-                    Found — {domain} at position #{brandPos}
+                    Found: {domain} at position #{brandPos}
                   </span>
                 </div>
               ) : (
                 <div className="flex items-center gap-2 rounded-lg border border-[#fce8e6] bg-[#fce8e6] px-4 py-3 shadow-sm">
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#ea4335] text-[10px] font-black text-white">✕</span>
                   <span className="text-xs font-bold text-[#c5221f]">
-                    Not found — {domain} not in top 50 results
+                    Not found: {domain} is not in the top 50
                   </span>
                 </div>
               )}

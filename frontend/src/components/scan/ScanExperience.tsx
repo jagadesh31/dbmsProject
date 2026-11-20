@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 import {
   JOURNEY_STEPS,
   JourneyStepId,
@@ -38,8 +39,8 @@ export function ScanExperience({
 }) {
   const progress = journeyProgressPercent(step, finished, running);
   const eta = estimateSecondsRemaining(step, finished);
+  const current = JOURNEY_STEPS.find((item) => item.id === step);
 
-  // Lock document scroll for the whole scan — only inner panels may scroll.
   useEffect(() => {
     const prevHtml = document.documentElement.style.overflow;
     const prevBody = document.body.style.overflow;
@@ -53,16 +54,27 @@ export function ScanExperience({
 
   return (
     <div className="scan-app flex h-dvh max-h-dvh flex-col overflow-hidden">
-      <header className="relative z-20 flex shrink-0 items-center justify-between border-b border-black/[0.04] bg-[#f7f3ec]/80 px-5 py-3 backdrop-blur-md md:px-8">
-        <div className="flex items-center gap-3">
+      <header className="relative z-20 flex shrink-0 items-center justify-between border-b border-[var(--line)]/70 bg-[var(--paper)]/85 px-5 py-3 backdrop-blur-md md:px-8">
+        <div className="flex min-w-0 items-center gap-4">
+          <Link
+            href="/"
+            className="shrink-0 font-[family-name:var(--font-display)] text-xl tracking-tight text-[var(--ink)]"
+          >
+            Seenly
+          </Link>
+          <div className="hidden h-5 w-px bg-[var(--line)] sm:block" />
           <div className="min-w-0">
             <div className="truncate text-[10px] font-medium uppercase tracking-[0.14em] text-zinc-400">
               {domain}
             </div>
             {positioning ? (
               <div className="mt-0.5 flex items-center gap-1.5 truncate">
-                <span className="shrink-0 text-[9px] font-black uppercase tracking-[0.12em] text-[var(--rust)]">Aiming at</span>
-                <span className="truncate text-[10px] font-semibold text-zinc-600" title={positioning}>{positioning}</span>
+                <span className="shrink-0 text-[9px] font-black uppercase tracking-[0.12em] text-[var(--rust)]">
+                  Aiming at
+                </span>
+                <span className="truncate text-[10px] font-semibold text-zinc-600" title={positioning}>
+                  {positioning}
+                </span>
               </div>
             ) : null}
           </div>
@@ -70,10 +82,10 @@ export function ScanExperience({
         <span
           className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wide ${
             finished
-              ? "bg-emerald-100 text-emerald-800"
+              ? "bg-[var(--sage-soft)] text-[var(--sage)]"
               : stopped
-                ? "bg-amber-100 text-amber-800"
-                : "bg-white/80 text-zinc-600 ring-1 ring-black/5"
+                ? "bg-[var(--rust-soft)] text-[var(--rust)]"
+                : "bg-white/80 text-zinc-600 ring-1 ring-[var(--line)]"
           }`}
         >
           {finished ? "Ready" : stopped ? "Paused" : running ? "Live" : "Starting"}
@@ -81,10 +93,21 @@ export function ScanExperience({
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-3 md:flex-row md:gap-0 md:p-4 lg:p-5">
-        {/* Fixed-width sidebar — never grows with content */}
         <aside className="scan-sidebar relative flex h-auto max-h-[38vh] w-full shrink-0 flex-col overflow-hidden rounded-2xl text-white md:h-full md:max-h-none md:w-[280px] lg:w-[300px]">
           <div className="scan-sidebar-glow pointer-events-none absolute inset-0" />
           <div className="relative z-10 flex min-h-0 flex-1 flex-col p-4 md:p-5">
+            <div className="mb-4 shrink-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">
+                Live analysis
+              </p>
+              <p className="mt-1 font-[family-name:var(--font-display)] text-lg tracking-tight text-white">
+                {current?.label ?? "Scan"}
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-white/45">
+                {current?.description}
+              </p>
+            </div>
+
             <nav
               className="scan-sidebar-nav min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
               aria-label="Scan progress"
@@ -92,27 +115,27 @@ export function ScanExperience({
               <div className="flex flex-col gap-0.5">
                 {JOURNEY_STEPS.map((item) => {
                   const done = item.id < step;
-                  const current = item.id === step;
+                  const isCurrent = item.id === step;
                   return (
                     <div
                       key={item.key}
-                      className={`rounded-xl px-3 py-2 transition-colors duration-300 ${
-                        current ? "bg-white/[0.12] ring-1 ring-white/20" : ""
+                      className={`rounded-xl px-3 py-2.5 transition-colors duration-300 ${
+                        isCurrent ? "bg-white/[0.1] ring-1 ring-[rgba(166,90,58,0.45)]" : ""
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <StatusIcon done={done} current={current} />
+                        <StatusIcon done={done} current={isCurrent} />
                         <span
                           className={`text-sm font-medium transition-colors ${
-                            current ? "text-white" : done ? "text-white/75" : "text-white/30"
+                            isCurrent ? "text-white" : done ? "text-white/75" : "text-white/30"
                           }`}
                         >
                           {item.label}
                         </span>
                       </div>
 
-                      {current && subtasks.length > 0 ? (
-                        <ul className="mt-2 space-y-1.5 border-l border-white/10 pl-5 ml-2">
+                      {isCurrent && subtasks.length > 0 ? (
+                        <ul className="ml-2 mt-2 space-y-1.5 border-l border-white/10 pl-5">
                           {subtasks.map((task) => (
                             <li
                               key={task.label}
@@ -122,13 +145,17 @@ export function ScanExperience({
                                 <span
                                   className={`h-1.5 w-1.5 shrink-0 rounded-full ${
                                     task.done
-                                      ? "bg-emerald-400"
+                                      ? "bg-[var(--sage)]"
                                       : task.detail === "crawling…"
-                                        ? "bg-amber-400 scan-pulse-dot"
+                                        ? "scan-pulse-dot bg-[var(--rust)]"
                                         : "scan-pulse-dot bg-white/50"
                                   }`}
                                 />
-                                <span className={`truncate ${task.detail === "crawling…" ? "text-white/80 font-medium" : ""}`}>
+                                <span
+                                  className={`truncate ${
+                                    task.detail === "crawling…" ? "font-medium text-white/80" : ""
+                                  }`}
+                                >
                                   {task.label}
                                 </span>
                               </span>
@@ -136,9 +163,9 @@ export function ScanExperience({
                                 <span
                                   className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${
                                     task.detail === "✓"
-                                      ? "bg-emerald-500/20 text-emerald-400"
+                                      ? "bg-[rgba(90,122,106,0.28)] text-[#c5d9cc]"
                                       : task.detail === "crawling…"
-                                        ? "bg-amber-500/20 text-amber-400"
+                                        ? "bg-[rgba(166,90,58,0.28)] text-[#e8c4b4]"
                                         : "bg-white/10 text-white/80"
                                   }`}
                                 >
@@ -157,15 +184,17 @@ export function ScanExperience({
 
             <div className="mt-4 shrink-0">
               <div className="mb-2 flex items-center justify-between text-xs text-white/45">
-                <span>
-                  {finished ? "All set" : stopped ? "Paused" : `About ${eta}s left`}
-                </span>
+                <span>{finished ? "All set" : stopped ? "Paused" : `About ${eta}s left`}</span>
                 <span className="font-semibold tabular-nums text-white/70">{progress}%</span>
               </div>
               <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
                 <div
-                  className="scan-progress-bar h-full rounded-full bg-gradient-to-r from-white/90 to-white"
-                  style={{ width: `${progress}%` }}
+                  className="scan-progress-bar h-full rounded-full"
+                  style={{
+                    width: `${progress}%`,
+                    background:
+                      "linear-gradient(90deg, var(--rust) 0%, #c4845f 45%, var(--sage) 100%)",
+                  }}
                 />
               </div>
             </div>
@@ -176,7 +205,7 @@ export function ScanExperience({
           <div className="scan-main-sheen pointer-events-none absolute inset-0" />
           <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden p-3 md:p-4">
             {stopped ? (
-              <div className="mb-4 shrink-0 rounded-2xl border border-red-200/80 bg-red-50/90 px-4 py-3 text-sm text-[#1a1a18] shadow-sm">
+              <div className="mb-4 shrink-0 rounded-2xl border border-[var(--rust)]/30 bg-[var(--rust-soft)]/90 px-4 py-3 text-sm text-[var(--ink)] shadow-sm">
                 <p className="font-semibold">Something interrupted the scan.</p>
                 <p className="mt-1 text-zinc-600">{pauseDetail}</p>
                 {onRestart ? (
@@ -184,7 +213,7 @@ export function ScanExperience({
                     type="button"
                     onClick={onRestart}
                     disabled={restarting}
-                    className="mt-3 rounded-xl bg-[#1a1a18] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-[#a65a3a] disabled:opacity-50"
+                    className="mt-3 rounded-xl bg-[var(--ink)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-[var(--rust)] disabled:opacity-50"
                   >
                     {restarting ? "Restarting…" : "Restart scan"}
                   </button>
@@ -192,7 +221,7 @@ export function ScanExperience({
               </div>
             ) : null}
 
-          <div
+            <div
               key={`panel-${step}`}
               className="scan-step-enter flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden"
             >
@@ -208,7 +237,7 @@ export function ScanExperience({
 function StatusIcon({ done, current }: { done: boolean; current: boolean }) {
   if (done && !current) {
     return (
-      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-[10px] font-black text-[#1a1a18]">
+      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--sage)] text-[10px] font-black text-white">
         ✓
       </span>
     );
@@ -216,8 +245,8 @@ function StatusIcon({ done, current }: { done: boolean; current: boolean }) {
   if (current) {
     return (
       <span className="relative flex h-5 w-5 items-center justify-center">
-        <span className="absolute inset-0 animate-ping rounded-full bg-white/25" />
-        <span className="h-2.5 w-2.5 rounded-full bg-white shadow-[0_0_12px_rgba(255,255,255,0.6)]" />
+        <span className="absolute inset-0 animate-ping rounded-full bg-[rgba(166,90,58,0.35)]" />
+        <span className="h-2.5 w-2.5 rounded-full bg-[var(--rust)] shadow-[0_0_12px_rgba(166,90,58,0.65)]" />
       </span>
     );
   }
