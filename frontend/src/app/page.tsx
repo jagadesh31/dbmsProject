@@ -42,9 +42,6 @@ export default function LandingPage() {
 
         <div className="reveal-item mt-11 w-full max-w-2xl" style={{ animationDelay: "200ms" }}>
           <DomainIntake cta="Check my site" />
-          <p className="mt-4 text-xs font-medium text-zinc-400">
-            Free scan, no Google login. Sign in when you want the full report.
-          </p>
         </div>
       </main>
     </div>

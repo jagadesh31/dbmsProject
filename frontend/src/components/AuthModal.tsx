@@ -37,6 +37,8 @@ export type AuthModalMode = "login" | "limit";
 export type AuthModalOptions = {
   mode?: AuthModalMode;
   message?: string;
+  /** Reuse a Turnstile token already completed on the landing form. */
+  turnstileToken?: string;
 };
 
 type AuthModalContextValue = {
@@ -70,11 +72,13 @@ export function AuthModalProvider({
   const [redirect, setRedirect] = useState(initialRedirect ?? "");
   const [mode, setMode] = useState<AuthModalMode>(initialMode);
   const [message, setMessage] = useState(initialMessage ?? "");
+  const [seedToken, setSeedToken] = useState("");
 
   const openAuthModal = useCallback((nextRedirect?: string, options?: AuthModalOptions) => {
     setRedirect(nextRedirect ?? "");
     setMode(options?.mode ?? "login");
     setMessage(options?.message ?? "");
+    setSeedToken(options?.turnstileToken ?? "");
     setOpen(true);
   }, []);
 
@@ -90,6 +94,7 @@ export function AuthModalProvider({
         redirect={redirect}
         mode={mode}
         message={message}
+        seedToken={seedToken}
         onClose={closeAuthModal}
       />
     </AuthModalContext.Provider>
@@ -101,12 +106,14 @@ function AuthModal({
   redirect,
   mode,
   message,
+  seedToken = "",
   onClose,
 }: {
   open: boolean;
   redirect: string;
   mode: AuthModalMode;
   message: string;
+  seedToken?: string;
   onClose: () => void;
 }) {
   const widgetRef = useRef<HTMLDivElement>(null);
@@ -114,9 +121,19 @@ function AuthModal({
   const [token, setToken] = useState("");
   const [scriptReady, setScriptReady] = useState(false);
   const isLimit = mode === "limit";
+  const hasSeed = Boolean(seedToken);
 
   useEffect(() => {
     if (!open) return;
+    if (seedToken) {
+      setToken(seedToken);
+      return;
+    }
+    setToken("");
+  }, [open, seedToken]);
+
+  useEffect(() => {
+    if (!open || hasSeed) return;
     if (window.turnstile) {
       setScriptReady(true);
       return;
@@ -133,10 +150,10 @@ function AuthModal({
     script.dataset.seenlyTurnstile = "1";
     script.onload = () => setScriptReady(true);
     document.head.appendChild(script);
-  }, [open]);
+  }, [open, hasSeed]);
 
   useEffect(() => {
-    if (!open || !scriptReady || !widgetRef.current || !window.turnstile) return;
+    if (!open || hasSeed || !scriptReady || !widgetRef.current || !window.turnstile) return;
     if (widgetId.current) {
       window.turnstile.remove(widgetId.current);
       widgetId.current = null;
@@ -155,7 +172,7 @@ function AuthModal({
         widgetId.current = null;
       }
     };
-  }, [open, scriptReady]);
+  }, [open, scriptReady, hasSeed]);
 
   useEffect(() => {
     if (!open) return;
@@ -260,17 +277,21 @@ function AuthModal({
           {isLimit ? "Continue with a different Google account" : "Continue with Google"}
         </a>
 
-        <div className="relative z-10 mt-5 flex justify-center">
-          {TURNSTILE_SITE_KEY ? (
-            <div ref={widgetRef} />
-          ) : (
-            <p className="text-center text-[12px] text-[var(--rust)]">Turnstile site key is missing.</p>
-          )}
-        </div>
-        {TURNSTILE_SITE_KEY && !token ? (
-          <p className="relative z-10 mt-3 text-center text-[12px] text-zinc-400">
-            Complete the check to continue.
-          </p>
+        {!hasSeed ? (
+          <>
+            <div className="relative z-10 mt-5 flex justify-center">
+              {TURNSTILE_SITE_KEY ? (
+                <div ref={widgetRef} />
+              ) : (
+                <p className="text-center text-[12px] text-[var(--rust)]">Turnstile site key is missing.</p>
+              )}
+            </div>
+            {TURNSTILE_SITE_KEY && !token ? (
+              <p className="relative z-10 mt-3 text-center text-[12px] text-zinc-400">
+                Complete the check to continue.
+              </p>
+            ) : null}
+          </>
         ) : null}
 
         <p className="relative z-10 mt-5 text-center text-[11px] leading-relaxed text-zinc-400">
